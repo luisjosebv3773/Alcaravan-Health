@@ -1,0 +1,7 @@
+{
+  "name": "Alcaraván Health",
+  "description": "A comprehensive health management platform with AI-powered diagnostics, body composition analysis, and clinical workstation for patients, doctors, and nutritionists.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
