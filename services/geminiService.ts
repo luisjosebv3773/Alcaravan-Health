@@ -10,13 +10,13 @@ export const getHealthAdvice = async (prompt: string) => {
       model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
-        systemInstruction: "You are a professional medical assistant for Alcaraván Health. Provide helpful, accurate, and supportive health advice. Always suggest consulting a human professional for serious matters."
+        systemInstruction: "Eres un asistente médico profesional para Alcaraván Health. Proporciona consejos de salud útiles, precisos y de apoyo en español. Siempre sugiere consultar a un profesional humano para asuntos graves."
       }
     });
-    return response.text || "I'm sorry, I couldn't generate a response.";
+    return response.text || "Lo siento, no pude generar una respuesta.";
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "An error occurred while connecting to the health assistant.";
+    return "Ocurrió un error al conectar con el asistente de salud.";
   }
 };
 
@@ -28,13 +28,13 @@ export const analyzeHealthImage = async (base64Image: string, mimeType: string, 
       contents: {
         parts: [
           { inlineData: { data: base64Image, mimeType } },
-          { text: prompt || "Analyze this image for any health-related insights, such as nutritional content in a meal, skin conditions, or fitness form. Provide a professional assessment." }
+          { text: prompt || "Analiza esta imagen para obtener información relacionada con la salud, como contenido nutricional de una comida, afecciones cutáneas o forma física. Proporciona una evaluación profesional en español." }
         ]
       }
     });
-    return response.text || "I couldn't analyze the image.";
+    return response.text || "No pude analizar la imagen.";
   } catch (error) {
     console.error("Gemini Vision Error:", error);
-    return "An error occurred during image analysis.";
+    return "Ocurrió un error durante el análisis de la imagen.";
   }
 };

@@ -6,7 +6,7 @@ import { ChatMessage } from '../types';
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: "Hello! I'm your Alcaraván Health AI assistant. How can I help you today? You can ask me health questions or upload a photo of your meal or a fitness pose for analysis." }
+    { role: 'model', text: "¡Hola! Soy tu asistente de IA de Alcaraván Health. ¿Cómo puedo ayudarte hoy? Puedes hacerme preguntas sobre salud o subir una foto de tu comida o una postura de ejercicio para analizarla." }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,13 +39,13 @@ export default function AIChatbot() {
     if (!file) return;
 
     setIsLoading(true);
-    setMessages(prev => [...prev, { role: 'user', text: `[Analyzed Image: ${file.name}]` }]);
+    setMessages(prev => [...prev, { role: 'user', text: `[Imagen Analizada: ${file.name}]` }]);
 
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result?.toString().split(',')[1];
       if (base64) {
-        const aiResponse = await analyzeHealthImage(base64, file.type, "Analyze this image for health insights.");
+        const aiResponse = await analyzeHealthImage(base64, file.type, "Analiza esta imagen para obtener consejos de salud.");
         setMessages(prev => [...prev, { role: 'model', text: aiResponse }]);
       }
       setIsLoading(false);
@@ -60,7 +60,7 @@ export default function AIChatbot() {
           <div className="p-4 bg-primary text-black flex items-center justify-between">
             <div className="flex items-center gap-2 font-bold">
               <span className="material-symbols-outlined">smart_toy</span>
-              Health AI Assistant
+              Asistente de Salud IA
             </div>
             <button onClick={() => setIsOpen(false)} className="hover:bg-black/10 rounded p-1 transition-colors">
               <span className="material-symbols-outlined">close</span>
@@ -91,7 +91,7 @@ export default function AIChatbot() {
 
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-card-dark/50">
             <div className="flex gap-2">
-              <button onClick={() => fileInputRef.current?.click()} className="p-2 text-text-sub hover:text-primary transition-colors">
+              <button onClick={() => fileInputRef.current?.click()} className="p-2 text-text-sub hover:text-primary transition-colors" title="Subir imagen">
                 <span className="material-symbols-outlined">photo_camera</span>
               </button>
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
@@ -100,7 +100,7 @@ export default function AIChatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Ask health questions..."
+                placeholder="Pregunta algo sobre tu salud..."
                 className="flex-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm focus:ring-primary focus:border-primary"
               />
               <button onClick={handleSend} disabled={isLoading} className="bg-primary text-black p-2 rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50">
