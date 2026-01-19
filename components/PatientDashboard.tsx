@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { supabase } from '../services/supabase';
 
 const data = [
   { subject: 'Músculo', A: 120, B: 110, fullMark: 150 },
@@ -12,12 +13,68 @@ const data = [
   { subject: 'Metabolismo', A: 65, B: 85, fullMark: 150 },
 ];
 
-export default function PatientDashboard() {
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  visit_type: string;
+  doctor: {
+    full_name: string;
+    specialty: string;
+  };
+}
+
+export default function PatientDashboard({ userName }: { userName?: string }) {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          appointment_time,
+          visit_type,
+          doctor:doctor_id (
+            full_name,
+            specialty
+          )
+        `)
+        .eq('patient_id', session.user.id)
+        .gte('appointment_date', new Date().toISOString().split('T')[0]) // Only future or today
+        .in('status', ['pending', 'confirmed'])
+        .order('appointment_date', { ascending: true })
+        // We can't easily sort by time string "08:00 AM" in SQL if mixed, 
+        // but typically date sort is enough for "closest days".
+        .limit(5); // Fetch a few to sort in memory if needed
+
+      if (data) {
+        // Simple client-side sort to ensure time correctness within same day is tricky with AM/PM strings
+        // but assuming the user wants rough "next appointments", date order is primary.
+        // Let's rely on date order for now.
+        // We need to cast the doctor generic because Supabase types might be inferred loosely
+        const safeData = data.map((item: any) => ({
+          ...item,
+          doctor: Array.isArray(item.doctor) ? item.doctor[0] : item.doctor
+        }));
+        setAppointments(safeData.slice(0, 3));
+      }
+      setLoadingAppointments(false);
+    };
+
+    fetchAppointments();
+  }, []);
+
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-8">
       <section className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="max-w-2xl">
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2">Buenos días, Mateo</h2>
+          <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2">Buenos días, {userName || 'Usuario'}</h2>
           <p className="text-text-sub dark:text-gray-400 text-lg">Tus últimas mediciones muestran tendencias prometedoras. Mantengamos tus estadísticas en <span className="text-primary font-bold">verde</span> hoy.</p>
         </div>
         <div className="flex gap-3">
@@ -55,7 +112,7 @@ export default function PatientDashboard() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex flex-col md:flex-row items-center gap-8 flex-grow">
               <div className="w-full md:w-1/2 h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -78,7 +135,7 @@ export default function PatientDashboard() {
         </div>
 
         <div className="lg:col-span-4 flex flex-col gap-6">
-          <AppointmentCard />
+          <AppointmentCard appointments={appointments} loading={loadingAppointments} />
           <WellnessGoals />
           <EducationTip />
         </div>
@@ -129,26 +186,70 @@ function SubMetric({ label, value, unit, progress, trend, color }: any) {
   );
 }
 
-function AppointmentCard() {
+function AppointmentCard({ appointments, loading }: { appointments: Appointment[], loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const upcoming = appointments.length > 0 ? appointments[0] : null;
+  const nextAppointments = appointments.slice(1);
+
   return (
     <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold">Próxima Cita</h3>
+        <h3 className="text-lg font-bold">Próximas Citas</h3>
         <Link className="text-sm font-bold text-primary hover:underline" to="/appointment-history">Ver todas</Link>
       </div>
-      <div className="relative pl-6 pb-6 border-l-2 border-primary/30 last:pb-0">
-        <span className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-primary ring-4 ring-white dark:ring-card-dark"></span>
-        <p className="text-sm font-bold text-text-sub mb-1">Mañana, 10:00 AM</p>
-        <h4 className="font-bold text-lg mb-1">Consulta Nutricionista</h4>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="size-6 rounded-full bg-gray-200 bg-cover" style={{ backgroundImage: "url('https://picsum.photos/seed/doc1/100/100')" }}></div>
-          <span className="text-sm font-medium">Dra. Sarah Jimenez</span>
+
+      {upcoming ? (
+        <>
+          <div className="relative pl-6 pb-6 border-l-2 border-primary/30 last:pb-0">
+            <span className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-primary ring-4 ring-white dark:ring-card-dark"></span>
+            <p className="text-sm font-bold text-text-sub mb-1">
+              {new Date(upcoming.appointment_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })} • {upcoming.appointment_time}
+            </p>
+            <h4 className="font-bold text-lg mb-1 capitalize">{upcoming.doctor?.specialty || 'General'}</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                {upcoming.doctor?.full_name?.charAt(0) || 'D'}
+              </div>
+              <span className="text-sm font-medium">{upcoming.doctor?.full_name || 'Doctor'}</span>
+            </div>
+            <div className="flex gap-2">
+              <button className="px-3 py-1.5 text-xs font-bold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">Reprogramar</button>
+              <button className="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded transition-colors">Detalles</button>
+            </div>
+          </div>
+
+          {nextAppointments.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 space-y-4">
+              {nextAppointments.map((appt) => (
+                <div key={appt.id} className="relative pl-6 border-l-2 border-gray-200 dark:border-gray-700">
+                  <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-xs font-bold text-text-sub">
+                        {new Date(appt.appointment_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} • {appt.appointment_time}
+                      </p>
+                      <p className="text-sm font-semibold">{appt.doctor?.full_name}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-center py-6 text-text-sub">
+          <span className="material-symbols-outlined text-4xl mb-2 opacity-50">event_busy</span>
+          <p>No tienes citas programadas.</p>
         </div>
-        <div className="flex gap-2">
-          <button className="px-3 py-1.5 text-xs font-bold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">Reprogramar</button>
-          <button className="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded transition-colors">Detalles</button>
-        </div>
-      </div>
+      )}
+
       <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
         <Link to="/request-appointment" className="w-full py-3 bg-primary text-black font-bold rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
           <span className="material-symbols-outlined">calendar_add_on</span> Reservar Nueva Cita

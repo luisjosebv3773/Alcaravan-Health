@@ -1,42 +1,77 @@
 
 import React, { useState } from 'react';
 import { UserRole } from '../types';
+import { supabase } from '../services/supabase';
+import { Link, useNavigate } from 'react-router-dom';
+
 
 interface LoginProps {
-  onLogin: (role: UserRole) => void;
+  onLogin: (role: UserRole, name?: string, avatarUrl?: string) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const roles = [
-    {
-      id: UserRole.PATIENT,
-      title: 'Paciente',
-      icon: 'person',
-      desc: 'Acceder a mis resultados y citas',
-      color: 'bg-primary/10 border-primary'
-    },
-    {
-      id: UserRole.DOCTOR,
-      title: 'Médico',
-      icon: 'medical_services',
-      desc: 'Gestionar agenda y fichas de pacientes',
-      color: 'bg-blue-500/10 border-blue-500'
-    },
-    {
-      id: UserRole.NUTRITIONIST,
-      title: 'Nutricionista',
-      icon: 'restaurant',
-      desc: 'Evaluaciones nutricionales y planes de dieta',
-      color: 'bg-orange-500/10 border-orange-500'
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Por favor ingresa tu correo y contraseña');
+      return;
     }
-  ];
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authError) throw authError;
+
+      if (data.user) {
+        // Fetch user role from profiles
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, full_name, avatar_url')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          // Handle case where profile might not exist immediately if trigger failed
+          // Fallback or error
+          throw new Error('No se pudo obtener el perfil del usuario.');
+        }
+
+        if (profile?.role) {
+          // Map string role to UserRole enum... (existing logic)
+          let appRole: UserRole;
+          switch (profile.role) {
+            case 'doctor': appRole = UserRole.DOCTOR; break;
+            case 'nutri':
+            case 'nutritionist': appRole = UserRole.NUTRITIONIST; break;
+            case 'paciente':
+            default: appRole = UserRole.PATIENT; break;
+          }
+          onLogin(appRole, profile.full_name, profile.avatar_url);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-6">
       <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-        
+
         <div className="bg-primary p-12 flex flex-col justify-between text-black relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <span className="material-symbols-outlined !text-[200px]">health_and_safety</span>
@@ -46,53 +81,64 @@ export default function Login({ onLogin }: LoginProps) {
               <span className="material-symbols-outlined !text-4xl">health_and_safety</span>
               <h1 className="text-2xl font-black tracking-tight italic">Alcaraván Health</h1>
             </div>
-            <h2 className="text-4xl font-black leading-tight mb-4">Gestión de Salud <br/> Personalizada.</h2>
-            <p className="font-medium opacity-80">Bienvenido de nuevo. Por favor selecciona tu espacio de trabajo para continuar gestionando tus datos de salud.</p>
+            <h2 className="text-4xl font-black leading-tight mb-4">Gestión de Salud <br /> Personalizada.</h2>
+            <p className="font-medium opacity-80">Bienvenido de nuevo. Por favor ingresa tus credenciales para continuar.</p>
           </div>
           <div className="text-xs font-bold uppercase tracking-widest opacity-60">
             Impulsado por el Motor de IA Gemini
           </div>
         </div>
 
-        <div className="p-8 lg:p-12">
+        <div className="p-8 lg:p-12 relative">
+          <Link to="/register" className="absolute top-8 right-8 text-sm font-bold text-primary hover:underline">
+            Crear cuenta
+          </Link>
+
           <div className="mb-10">
             <h3 className="text-2xl font-bold mb-2">Iniciar Sesión</h3>
-            <p className="text-text-sub dark:text-gray-400">Elige tu perfil para proceder al panel de control.</p>
+            <p className="text-text-sub dark:text-gray-400">Ingresa a tu cuenta</p>
           </div>
 
-          <div className="space-y-4 mb-10">
-            {roles.map((role) => (
-              <button
-                key={role.id}
-                onClick={() => setSelectedRole(role.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
-                  selectedRole === role.id 
-                    ? `${role.color} border-current scale-[1.02] shadow-lg` 
-                    : 'border-transparent bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                <div className={`p-3 rounded-xl ${selectedRole === role.id ? 'bg-white/50' : 'bg-white dark:bg-gray-700 shadow-sm'}`}>
-                  <span className={`material-symbols-outlined ${selectedRole === role.id ? 'text-black' : 'text-gray-500'}`}>{role.icon}</span>
-                </div>
-                <div>
-                  <h4 className="font-bold">{role.title}</h4>
-                  <p className="text-xs text-text-sub dark:text-gray-400">{role.desc}</p>
-                </div>
-                {selectedRole === role.id && (
-                  <span className="material-symbols-outlined ml-auto text-primary">check_circle</span>
-                )}
-              </button>
-            ))}
-          </div>
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
+              {error}
+            </div>
+          )}
 
-          <button
-            disabled={!selectedRole}
-            onClick={() => selectedRole && onLogin(selectedRole)}
-            className="w-full py-4 bg-primary text-black font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            Entrar al Panel
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
+          <form onSubmit={handleLogin} className="space-y-4 mb-8">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-text-sub mb-2">Correo Electrónico</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-4 font-medium focus:ring-2 focus:ring-primary outline-none"
+                placeholder="ejemplo@alcaravan.com"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-text-sub mb-2">Contraseña</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-4 font-medium focus:ring-2 focus:ring-primary outline-none"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-primary text-black font-black rounded-2xl shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? 'Iniciando...' : 'Entrar al Panel'}
+              {!loading && <span className="material-symbols-outlined">arrow_forward</span>}
+            </button>
+          </form>
+
         </div>
       </div>
     </div>
