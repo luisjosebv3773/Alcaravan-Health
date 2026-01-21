@@ -134,21 +134,7 @@ export default function Register() {
                 onPrimaryAction={handleDialogClose}
             />
 
-            <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-
-                <div className="bg-primary p-12 flex flex-col justify-between text-black relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <span className="material-symbols-outlined !text-[200px]">edit_square</span>
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-8">
-                            <span className="material-symbols-outlined !text-4xl">health_and_safety</span>
-                            <h1 className="text-2xl font-black tracking-tight italic">Alcaraván Health</h1>
-                        </div>
-                        <h2 className="text-4xl font-black leading-tight mb-4">Únete a Nosotros.</h2>
-                        <p className="font-medium opacity-80">Crea tu cuenta para comenzar a gestionar tu salud de manera inteligente.</p>
-                    </div>
-                </div>
+            <div className="w-full max-w-2xl bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
 
                 <div className="p-8 lg:p-12 relative">
                     <Link to="/login" className="absolute top-8 right-8 text-sm font-bold text-primary hover:underline">

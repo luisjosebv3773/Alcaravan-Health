@@ -9,6 +9,7 @@ import RequestAppointment from './components/RequestAppointment';
 import AppointmentHistory from './components/AppointmentHistory';
 import AppointmentDetails from './components/AppointmentDetails';
 import PatientDetails from './components/PatientDetails';
+import ProfessionalOnboarding from './components/ProfessionalOnboarding';
 
 
 import AIChatbot from './components/AIChatbot';
@@ -23,7 +24,7 @@ import { messaging, requestNotificationPermission } from './services/firebase';
 import { onMessage } from 'firebase/messaging';
 
 
-const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; onLogout: () => void }> = ({ role, userName, avatarUrl, onLogout }) => {
+const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; onLogout: () => void; needsOnboarding?: boolean }> = ({ role, userName, avatarUrl, onLogout, needsOnboarding }) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const roleLabels: Record<UserRole, string> = {
@@ -96,6 +97,7 @@ const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; on
   const unreadCount = notifications.filter(n => !n.leida).length;
 
   const getDashboardPath = () => {
+    if (needsOnboarding) return '/onboarding';
     switch (role) {
       case UserRole.DOCTOR: return '/clinical';
       case UserRole.NUTRITIONIST: return '/nutrition';
@@ -205,6 +207,7 @@ function AppContent() {
   const [userName, setUserName] = useState<string>('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -215,7 +218,7 @@ function AppContent() {
         // Fetch role if session exists
         supabase
           .from('profiles')
-          .select('full_name, role, avatar_url')
+          .select('full_name, role, avatar_url, mpps_registry')
           .eq('id', session.user.id)
           .single()
           .then(({ data: profile }) => {
@@ -231,7 +234,17 @@ function AppContent() {
               setRole(appRole);
               if (profile.full_name) setUserName(profile.full_name);
               if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+
+              // Check onboarding status for professionals
+              const isOnboardingCreate = (appRole === UserRole.DOCTOR || appRole === UserRole.NUTRITIONIST) && !profile.mpps_registry;
+              setNeedsOnboarding(isOnboardingCreate);
+
               setIsLoggedIn(true);
+
+              // Redirect if needed and not already there
+              if (isOnboardingCreate && location.pathname !== '/onboarding') {
+                navigate('/onboarding');
+              }
 
               // Request notification permission and save token
               requestNotificationPermission().then(token => {
@@ -289,10 +302,11 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogin = (selectedRole: UserRole, name?: string, avatarUrl?: string) => {
+  const handleLogin = (selectedRole: UserRole, name?: string, avatarUrl?: string, isOnboardingRequired?: boolean) => {
     setRole(selectedRole);
     if (name) setUserName(name);
     if (avatarUrl) setAvatarUrl(avatarUrl);
+    setNeedsOnboarding(!!isOnboardingRequired);
     setIsLoggedIn(true);
 
     // Request notification permission and save token after manual login
@@ -311,6 +325,11 @@ function AppContent() {
         });
       }
     });
+
+    if (isOnboardingRequired) {
+      navigate('/onboarding');
+      return;
+    }
 
     if (selectedRole === UserRole.PATIENT) navigate('/');
     else if (selectedRole === UserRole.DOCTOR) navigate('/clinical');
@@ -332,7 +351,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {isLoggedIn && role && <Header role={role} userName={userName} avatarUrl={avatarUrl} onLogout={handleLogout} />}
+      {isLoggedIn && role && <Header role={role} userName={userName} avatarUrl={avatarUrl} onLogout={handleLogout} needsOnboarding={needsOnboarding} />}
       <main className="flex-grow">
         <Routes>
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
@@ -355,6 +374,7 @@ function AppContent() {
           <Route path="/appointment-history" element={role === UserRole.PATIENT ? <AppointmentHistory /> : <Navigate to="/login" />} />
           <Route path="/appointment-details/:id" element={role === UserRole.PATIENT ? <AppointmentDetails /> : <Navigate to="/login" />} />
           <Route path="/profile" element={isLoggedIn ? <UserProfile /> : <Navigate to="/login" />} />
+          <Route path="/onboarding" element={isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalOnboarding onOnboardingComplete={() => { setNeedsOnboarding(false); if (role === UserRole.DOCTOR) navigate('/clinical'); else if (role === UserRole.NUTRITIONIST) navigate('/nutrition'); }} /> : <Navigate to="/login" />} />
         </Routes>
       </main>
       {isLoggedIn && <AIChatbot />}

@@ -15,8 +15,11 @@ export default function UserProfile() {
         gender: '',
         blood_type: '',
         allergies: '',
-        avatar_url: ''
+        avatar_url: '',
+        role: ''
     });
+    const [allSpecialties, setAllSpecialties] = useState<any[]>([]);
+    const [mySpecialties, setMySpecialties] = useState<string[]>([]);
 
     useEffect(() => {
         getProfile();
@@ -31,7 +34,7 @@ export default function UserProfile() {
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('full_name, cedula, birth_date, gender, blood_type, allergies, avatar_url')
+                .select('full_name, cedula, birth_date, gender, blood_type, allergies, avatar_url, role')
                 .eq('id', session.user.id)
                 .single();
 
@@ -47,14 +50,41 @@ export default function UserProfile() {
                     gender: data.gender || 'Masculino',
                     blood_type: data.blood_type || 'O+',
                     allergies: data.allergies || '',
-                    avatar_url: data.avatar_url || ''
+                    avatar_url: data.avatar_url || '',
+                    role: data.role || ''
                 });
+
+                if (data.role === 'doctor' || data.role === 'nutri' || data.role === 'nutritionist') {
+                    getSpecialties(session.user.id);
+                }
             }
         } catch (error: any) {
             console.error('Error loading user data:', error.message);
         } finally {
             setLoading(false);
         }
+    };
+
+    const getSpecialties = async (userId: string) => {
+        // Fetch Dictionary
+        const { data: specs } = await supabase.from('specialties').select('*').order('name');
+        if (specs) setAllSpecialties(specs);
+
+        // Fetch User Specialties
+        const { data: userSpecs } = await supabase
+            .from('doctor_specialties')
+            .select('specialty_id')
+            .eq('doctor_id', userId);
+
+        if (userSpecs) {
+            setMySpecialties(userSpecs.map(us => us.specialty_id));
+        }
+    };
+
+    const toggleSpecialty = (id: string) => {
+        setMySpecialties(prev =>
+            prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+        );
     };
 
     const updateProfile = async (e: React.FormEvent) => {
@@ -74,7 +104,24 @@ export default function UserProfile() {
 
             const { error } = await supabase.from('profiles').upsert(updates);
 
+
             if (error) throw error;
+
+            // Update Specialties if doctor
+            if (profile.role === 'doctor' || profile.role === 'nutri' || profile.role === 'nutritionist') {
+                // Delete all existing
+                await supabase.from('doctor_specialties').delete().eq('doctor_id', session.user.id);
+
+                // Insert new ones
+                if (mySpecialties.length > 0) {
+                    const specialtyInserts = mySpecialties.map(sid => ({
+                        doctor_id: session.user.id,
+                        specialty_id: sid
+                    }));
+                    await supabase.from('doctor_specialties').insert(specialtyInserts);
+                }
+            }
+
             setMessage({ type: 'success', text: 'Perfil actualizado correctamente.' });
 
             // Refresh Header data by reloading or notifying
@@ -202,6 +249,34 @@ export default function UserProfile() {
                                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none dark:text-white"
                                 />
                             </div>
+
+                            {(profile.role === 'doctor' || profile.role === 'nutri' || profile.role === 'nutritionist') && (
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">Especialidades Médicas</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {allSpecialties.map((spec) => (
+                                            <label key={spec.id} className={`
+                                                cursor-pointer p-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-between
+                                                ${mySpecialties.includes(spec.id)
+                                                    ? 'bg-primary/10 border-primary text-primary-dark dark:text-primary'
+                                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/50'}
+                                            `}>
+                                                <span>{spec.name}</span>
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only"
+                                                    checked={mySpecialties.includes(spec.id)}
+                                                    onChange={() => toggleSpecialty(spec.id)}
+                                                />
+                                                {mySpecialties.includes(spec.id) && (
+                                                    <span className="material-symbols-outlined text-sm">check</span>
+                                                )}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2">Seleccione todas las que apliquen.</p>
+                                </div>
+                            )}
 
                             <div className="pt-4 flex justify-end">
                                 <button

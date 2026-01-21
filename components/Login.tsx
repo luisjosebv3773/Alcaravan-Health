@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 
 interface LoginProps {
-  onLogin: (role: UserRole, name?: string, avatarUrl?: string) => void;
+  onLogin: (role: UserRole, name?: string, avatarUrl?: string, isOnboardingRequired?: boolean) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -38,7 +38,7 @@ export default function Login({ onLogin }: LoginProps) {
         // Fetch user role from profiles
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role, full_name, avatar_url')
+          .select('role, full_name, avatar_url, mpps_registry')
           .eq('id', data.user.id)
           .single();
 
@@ -58,7 +58,8 @@ export default function Login({ onLogin }: LoginProps) {
             case 'paciente':
             default: appRole = UserRole.PATIENT; break;
           }
-          onLogin(appRole, profile.full_name, profile.avatar_url);
+          const needsOnboarding = (appRole === UserRole.DOCTOR || appRole === UserRole.NUTRITIONIST) && !profile.mpps_registry;
+          onLogin(appRole, profile.full_name, profile.avatar_url, needsOnboarding);
         }
       }
     } catch (err: any) {
@@ -70,24 +71,7 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-6">
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-
-        <div className="bg-primary p-12 flex flex-col justify-between text-black relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10">
-            <span className="material-symbols-outlined !text-[200px]">health_and_safety</span>
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="material-symbols-outlined !text-4xl">health_and_safety</span>
-              <h1 className="text-2xl font-black tracking-tight italic">Alcaraván Health</h1>
-            </div>
-            <h2 className="text-4xl font-black leading-tight mb-4">Gestión de Salud <br /> Personalizada.</h2>
-            <p className="font-medium opacity-80">Bienvenido de nuevo. Por favor ingresa tus credenciales para continuar.</p>
-          </div>
-          <div className="text-xs font-bold uppercase tracking-widest opacity-60">
-            Impulsado por el Motor de IA Gemini
-          </div>
-        </div>
+      <div className="w-full max-w-md bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
 
         <div className="p-8 lg:p-12 relative">
           <Link to="/register" className="absolute top-8 right-8 text-sm font-bold text-primary hover:underline">
