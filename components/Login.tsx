@@ -63,7 +63,18 @@ export default function Login({ onLogin }: LoginProps) {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+      // Translate common Supabase auth errors to Spanish
+      let errorMessage = err.message || 'Error al iniciar sesión';
+
+      if (err.message?.includes('Email not confirmed')) {
+        errorMessage = '📧 Correo no verificado. Por favor revisa tu bandeja de entrada y confirma tu correo electrónico antes de iniciar sesión.';
+      } else if (err.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Correo o contraseña incorrectos. Por favor verifica tus datos.';
+      } else if (err.message?.includes('User not found')) {
+        errorMessage = 'No existe una cuenta con este correo electrónico.';
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

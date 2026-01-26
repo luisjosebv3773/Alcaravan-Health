@@ -95,7 +95,8 @@ export default function Register() {
                         role: dbRole,
                         cedula: formData.cedula,
                         birth_date: formData.birthDate
-                    }
+                    },
+                    emailRedirectTo: `${window.location.origin}/login`
                 }
             });
 

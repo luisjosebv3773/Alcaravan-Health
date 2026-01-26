@@ -137,7 +137,6 @@ export default function RequestAppointment() {
       const { error } = await supabase.from('appointments').insert({
         patient_id: userId,
         doctor_id: selectedDoctor,
-        specialty: selectedSpecialty,
         appointment_date: date,
         appointment_time: time,
         visit_type: visitType,
