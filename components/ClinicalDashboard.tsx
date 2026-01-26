@@ -60,8 +60,8 @@ export default function ClinicalDashboard() {
   // CONSTANTS FOR AGENDA
   const START_HOUR = 8;
   const END_HOUR = 17; // 5 PM
-  const PIXELS_PER_MINUTE = 2; // 30 min = 60px height
-  const SLOT_HEIGHT = 60; // 30 min slot height
+  const PIXELS_PER_MINUTE = 1.5; // 30 min = 45px height
+  const SLOT_HEIGHT = 45; // 30 min slot height
 
   // 1. Fetch Basic Info & Stats
   useEffect(() => {
@@ -340,10 +340,10 @@ export default function ClinicalDashboard() {
         <StatCard icon="monitor_heart" color="red" label="Casos Urgentes" value={stats.urgent.toString()} alert={stats.urgent > 0} />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-[600px]">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:h-[880px]">
 
         {/* AGENDA VISUAL */}
-        <div className="xl:col-span-8 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col overflow-hidden">
+        <div className="xl:col-span-8 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full">
           <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-4">
               <h3 className="font-bold text-lg flex items-center gap-2">
@@ -381,7 +381,7 @@ export default function ClinicalDashboard() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto relative p-0 bg-slate-50/50 dark:bg-card-dark/50 no-scrollbar">
+          <div className="flex-1 relative p-0 bg-slate-50/50 dark:bg-card-dark/50">
             <div className="grid grid-cols-[80px_1fr] h-full min-w-[600px]">
               {/* Time Column */}
               <div className="flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-xs font-medium text-slate-400">
@@ -448,7 +448,7 @@ export default function ClinicalDashboard() {
           </div>
         </div>
 
-        <div className="xl:col-span-4 flex flex-col gap-6">
+        <div className="xl:col-span-4 flex flex-col gap-6 h-full overflow-hidden">
           <NextPatientCard
             appointment={selectedAppointment}
             onRefresh={fetchAgenda}
@@ -488,8 +488,9 @@ function StatCard({ icon, color, label, value, trend, alert }: any) {
 }
 
 function PendingRequests({ requests, loading, onApprove, onReject }: any) {
+  const navigate = useNavigate();
   return (
-    <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-1 flex flex-col min-h-[300px]">
+    <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-1 flex flex-col min-h-0">
       <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
         <h3 className="font-bold text-sm flex items-center gap-2">
           <span className={`size-2 bg-orange-500 rounded-full ${requests.length > 0 ? 'animate-pulse' : ''}`}></span>
@@ -497,7 +498,7 @@ function PendingRequests({ requests, loading, onApprove, onReject }: any) {
         </h3>
       </div>
 
-      <div className="p-3 overflow-y-auto flex flex-col gap-3 max-h-[400px]">
+      <div className="p-3 overflow-y-auto flex flex-col gap-3 flex-1 min-h-0">
         {loading ? (
           <div className="text-center py-6 text-slate-400 text-sm">Cargando solicitudes...</div>
         ) : requests.length === 0 ? (
@@ -506,11 +507,19 @@ function PendingRequests({ requests, loading, onApprove, onReject }: any) {
           requests.map((r: any) => (
             <div key={r.id} className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group">
               <div className="flex items-center gap-3 mb-2">
-                <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold uppercase shrink-0">
+                <div
+                  className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold uppercase shrink-0 cursor-pointer hover:bg-primary hover:text-white transition-all"
+                  onClick={() => navigate(`/patient-details/${r.patient_id}`)}
+                >
                   {r.patient?.full_name?.substring(0, 2) || 'NN'}
                 </div>
                 <div>
-                  <p className="text-sm font-bold">{r.patient?.full_name || 'Paciente sin nombre'}</p>
+                  <p
+                    className="text-sm font-bold cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => navigate(`/patient-details/${r.patient_id}`)}
+                  >
+                    {r.patient?.full_name || 'Paciente sin nombre'}
+                  </p>
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <span className="flex items-center gap-0.5">
                       <span className="material-symbols-outlined text-[10px]">calendar_today</span>
@@ -627,11 +636,19 @@ function NextPatientCard({ appointment, onRefresh }: { appointment: any | null, 
       </div>
 
       <div className="flex items-center gap-4 mb-5">
-        <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-xl font-bold shadow-sm">
+        <div
+          className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-xl font-bold shadow-sm cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => navigate(`/patient-details/${appointment.patient_id}`)}
+        >
           {appointment.patient?.full_name?.substring(0, 2) || 'NN'}
         </div>
         <div>
-          <p className="text-lg font-bold leading-tight">{appointment.patient?.full_name || 'Paciente'}</p>
+          <p
+            className="text-lg font-bold leading-tight cursor-pointer hover:text-primary transition-colors"
+            onClick={() => navigate(`/patient-details/${appointment.patient_id}`)}
+          >
+            {appointment.patient?.full_name || 'Paciente'}
+          </p>
           <p className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded inline-block mt-1">
             Hora: {appointment.appointment_time}
           </p>

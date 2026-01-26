@@ -1,11 +1,21 @@
 -- Create the Current Health Profile table
 CREATE TABLE IF NOT EXISTS public.perfil_actual_salud (
     patient_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    blood_type TEXT,
+    allergies TEXT,
+    medical_history TEXT,
+    family_history TEXT,
+    medications TEXT,
     weight FLOAT,
     height FLOAT,
     bmi FLOAT,
     whr FLOAT,
+    muscle_mass_kg FLOAT,
     body_fat_pct FLOAT,
+    body_water_pct FLOAT,
+    protein_pct FLOAT,
+    bmr_kcal FLOAT,
+    visceral_fat_level FLOAT,
     risk_status TEXT,
     last_evaluation_id UUID REFERENCES public.nutritional_evaluations(id) ON DELETE SET NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -15,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.perfil_actual_salud (
 ALTER TABLE public.perfil_actual_salud ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Nutritionists can see all health profiles" ON public.perfil_actual_salud;
 CREATE POLICY "Nutritionists can see all health profiles"
 ON public.perfil_actual_salud FOR SELECT
 TO authenticated
@@ -26,6 +37,7 @@ USING (
     )
 );
 
+DROP POLICY IF EXISTS "Patients can see their own health profile" ON public.perfil_actual_salud;
 CREATE POLICY "Patients can see their own health profile"
 ON public.perfil_actual_salud FOR SELECT
 TO authenticated
@@ -47,13 +59,12 @@ BEGIN
     ORDER BY created_at DESC
     LIMIT 1;
 
-    -- If there's no record (shouldn't happen on trigger but good for robustness)
+    -- If there's no record
     IF latest_record IS NULL THEN
         RETURN NEW;
     END IF;
 
     -- Calculate BMI and WHR from the latest record metrics
-    -- assuming metrics is a JSONB with {weight, height, waist, hip, body_fat, etc}
     IF (latest_record.metrics->>'height')::FLOAT > 0 THEN
         bmi_val := (latest_record.metrics->>'weight')::FLOAT / ((latest_record.metrics->>'height')::FLOAT / 100 * (latest_record.metrics->>'height')::FLOAT / 100);
     ELSE
@@ -66,7 +77,7 @@ BEGIN
         whr_val := 0;
     END IF;
 
-    -- Logic for Risk Status (example based on WHR and BMI)
+    -- Logic for Risk Status
     IF whr_val > 0.95 OR bmi_val > 30 THEN
         risk_txt := 'Alto';
     ELSIF whr_val > 0.85 OR bmi_val > 25 THEN
@@ -77,25 +88,22 @@ BEGIN
 
     -- Update or Insert the current profile
     INSERT INTO public.perfil_actual_salud (
-        patient_id,
-        weight,
-        height,
-        bmi,
-        whr,
-        body_fat_pct,
-        risk_status,
-        last_evaluation_id,
-        updated_at
+        patient_id, weight, height, bmi, whr, muscle_mass_kg, body_fat_pct, body_water_pct, protein_pct, bmr_kcal, visceral_fat_level, risk_status, last_evaluation_id, updated_at
     )
     VALUES (
-        latest_record.patient_id,
-        (latest_record.metrics->>'weight')::FLOAT,
+        latest_record.patient_id, 
+        (latest_record.metrics->>'weight')::FLOAT, 
         (latest_record.metrics->>'height')::FLOAT,
-        bmi_val,
-        whr_val,
+        bmi_val, 
+        whr_val, 
+        (latest_record.metrics->>'muscle_mass')::FLOAT,
         (latest_record.metrics->>'body_fat')::FLOAT,
-        risk_txt,
-        latest_record.id,
+        (latest_record.metrics->>'body_water')::FLOAT,
+        (latest_record.metrics->>'protein')::FLOAT,
+        (latest_record.metrics->>'bmr')::FLOAT,
+        (latest_record.metrics->>'visceral_fat')::FLOAT,
+        risk_txt, 
+        latest_record.id, 
         latest_record.created_at
     )
     ON CONFLICT (patient_id) DO UPDATE SET
@@ -103,7 +111,12 @@ BEGIN
         height = EXCLUDED.height,
         bmi = EXCLUDED.bmi,
         whr = EXCLUDED.whr,
+        muscle_mass_kg = EXCLUDED.muscle_mass_kg,
         body_fat_pct = EXCLUDED.body_fat_pct,
+        body_water_pct = EXCLUDED.body_water_pct,
+        protein_pct = EXCLUDED.protein_pct,
+        bmr_kcal = EXCLUDED.bmr_kcal,
+        visceral_fat_level = EXCLUDED.visceral_fat_level,
         risk_status = EXCLUDED.risk_status,
         last_evaluation_id = EXCLUDED.last_evaluation_id,
         updated_at = EXCLUDED.updated_at;

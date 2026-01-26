@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { supabase } from '../services/supabase';
+import { calculateAdvancedMetrics, calculateAge } from '../utils/healthMetrics';
 import AppDialog from './AppDialog';
 
 type DialogType = 'success' | 'error' | 'confirm' | 'info';
@@ -107,46 +108,94 @@ export default function NutritionistEvaluation() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No se encontró sesión de usuario');
 
+      // 1. Calcular métricas avanzadas (usando util)
+      const currentDateAge = calculateAge(patient?.birth_date || '');
+      const advancedMetrics = calculateAdvancedMetrics({
+        weight: Number(metrics.weight),
+        height: Number(metrics.height),
+        waist: Number(metrics.waist),
+        hip: Number(metrics.hip),
+        neck: Number(metrics.neck),
+        age: currentDateAge,
+        gender: patient?.gender === 'Femenino' || patient?.gender === 'Mujer' ? 'female' : 'male'
+      });
+
+      // 2. Preparar resumen descriptivo para el historial (matching user's expected format)
+      const bmiRes = getBMIData();
+      const bodyFatRes = getBodyFatData();
+      const whrRes = getWHRData();
+
+      const summaryText = `Paciente con IMC de ${advancedMetrics.bmi} (${bmiRes.status}), Grasa Corporal del ${advancedMetrics.bodyFat}% (${bodyFatRes.status}) y ICC de ${advancedMetrics.whr} (${whrRes.status}).`;
+
       const evaluationData = {
         patient_id: id,
         nutritionist_id: user.id,
-        metrics,
+        metrics: {
+          ...metrics,
+          body_fat: advancedMetrics.bodyFat
+        },
         habits,
         sleep_stress: sleepStress,
         diet_habits: dietHabits,
         physical_activity: physicalActivity,
         medical_history: medicalHistory,
-        ai_summary: `Paciente con IMC de ${bmiData.value} (${bmiData.status}), Grasa Corporal del ${bodyFatData.value}% (${bodyFatData.status}) y ICC de ${whrData.value} (${whrData.status}).`
+        ai_summary: summaryText
       };
 
-      // Si tenemos cálculo automático de grasa, lo guardamos en el objeto
-      if (bodyFatData.value !== '0.0') {
-        evaluationData.metrics.body_fat = parseFloat(bodyFatData.value);
-      }
-
+      // 3. Guardar en historial
+      console.log('Guardando en nutritional_evaluations...');
+      let saveError;
       if (evaluationId) {
-        const { error: updateError } = await supabase
-          .from('nutritional_evaluations')
-          .update(evaluationData)
-          .eq('id', evaluationId);
-        if (updateError) throw updateError;
+        const { error } = await supabase.from('nutritional_evaluations').update(evaluationData).eq('id', evaluationId);
+        saveError = error;
       } else {
-        const { error } = await supabase
-          .from('nutritional_evaluations')
-          .insert([evaluationData]);
-        if (error) throw error;
+        const { error } = await supabase.from('nutritional_evaluations').insert([evaluationData]);
+        saveError = error;
       }
+      if (saveError) throw saveError;
 
+      // 4. Upsert en perfil_actual_salud
+      const profileHealthData = {
+        patient_id: id,
+        weight: Number(metrics.weight),
+        height: Number(metrics.height),
+        bmi: advancedMetrics.bmi,
+        whr: advancedMetrics.whr,
+        muscle_mass_kg: advancedMetrics.muscleMass,
+        body_fat_pct: advancedMetrics.bodyFat,
+        body_water_pct: advancedMetrics.waterPct,
+        protein_pct: advancedMetrics.proteinPct,
+        bmr_kcal: advancedMetrics.bmr,
+        visceral_fat_level: advancedMetrics.visceralFatLevel,
+        blood_type: patient?.blood_type,
+        allergies: dietHabits.allergies,
+        medical_history: medicalHistory.previous_diagnoses,
+        medications: medicalHistory.medications,
+        risk_status: whrRes.status.includes('Alto') ? 'Alto' : 'Bajo',
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Intentando UPSERT en perfil_actual_salud...', profileHealthData);
+      const { error: healthProfileError } = await supabase
+        .from('perfil_actual_salud')
+        .upsert(profileHealthData, { onConflict: 'patient_id' });
+
+      if (healthProfileError) {
+        console.error('DETALLE ERROR UPSERT:', healthProfileError);
+        throw new Error(`Perfil Salud: ${healthProfileError.message}`);
+      }
+      console.log('UPSERT exitoso');
+
+      // 5. Exito y Notificación
       setDialogConfig({
         type: 'success',
         title: evaluationId ? 'Evaluación Actualizada' : 'Evaluación Guardada',
-        message: 'La evaluación nutricional ha sido registrada exitosamente.',
-        onConfirm: () => navigate(`/nutrition/patient-details/${id}`)
+        message: 'La evaluación nutricional y el perfil de salud han sido actualizados.',
+        onConfirm: () => navigate(`/patient-details/${id}`)
       });
       setDialogOpen(true);
       setLastSaved(new Date());
 
-      // Crear notificación para el paciente
       if (!evaluationId) {
         await supabase
           .from('notificaciones')
@@ -286,6 +335,7 @@ export default function NutritionistEvaluation() {
     return { value: bodyFat.toFixed(1), status, color, progress };
   };
 
+
   const bmiData = getBMIData();
   const whrData = getWHRData();
   const boneFrameData = getBoneFrameData();
@@ -351,12 +401,39 @@ export default function NutritionistEvaluation() {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          perfil_actual_salud (
+            blood_type,
+            allergies,
+            medical_history,
+            family_history,
+            medications
+          )
+        `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      setPatient(data);
+
+      const healthData = Array.isArray(data.perfil_actual_salud)
+        ? data.perfil_actual_salud[0]
+        : data.perfil_actual_salud || {};
+
+      setPatient({
+        ...data,
+        blood_type: healthData.blood_type,
+        allergies: healthData.allergies
+      });
+
+      if (healthData) {
+        setDietHabits(prev => ({ ...prev, allergies: healthData.allergies || '' }));
+        setMedicalHistory(prev => ({
+          ...prev,
+          medications: healthData.medications || '',
+          previous_diagnoses: healthData.medical_history || ''
+        }));
+      }
     } catch (error) {
       console.error('Error fetching patient:', error);
     } finally {
@@ -364,17 +441,7 @@ export default function NutritionistEvaluation() {
     }
   }
 
-  const calculateAge = (birthDate: string) => {
-    if (!birthDate) return 'N/A';
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const month = today.getMonth() - birth.getMonth();
-    if (month < 0 || (month === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
+
 
   if (loading) {
     return (
@@ -424,7 +491,7 @@ export default function NutritionistEvaluation() {
                 <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
                 <span className="capitalize">{patient.gender || 'No definido'}</span>
                 <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-                <span>{calculateAge(patient.birth_date)} Años</span>
+                <span>{calculateAge(patient.birth_date) || 'N/A'} Años</span>
               </div>
             </div>
           </div>
@@ -437,7 +504,7 @@ export default function NutritionistEvaluation() {
               Regresar
             </button>
             <button
-              onClick={() => navigate(`/nutrition/patient-details/${id}`)}
+              onClick={() => navigate(`/patient-details/${id}`)}
               className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Ficha Paciente

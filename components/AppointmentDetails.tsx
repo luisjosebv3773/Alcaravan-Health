@@ -19,7 +19,11 @@ interface AppointmentDetail {
   doctor_id: string;
   doctor: {
     full_name: string;
-    specialty: string;
+    doctor_specialties: Array<{
+      specialties: {
+        name: string;
+      }
+    }>;
     user_metadata?: any;
   };
   consultation?: {
@@ -72,7 +76,9 @@ export default function AppointmentDetails() {
           *,
           doctor:doctor_id (
             full_name,
-            specialty
+            doctor_specialties (
+              specialties ( name )
+            )
           ),
           consultation:consultations (
             reason,
@@ -273,7 +279,9 @@ export default function AppointmentDetails() {
                       <div>
                         <p className="text-xs text-text-sub uppercase font-bold mb-0.5">Especialista</p>
                         <p className="font-bold text-lg">{appointment.doctor?.full_name || 'No asignado'}</p>
-                        <p className="text-sm text-text-sub capitalize">{appointment.doctor?.specialty || 'Medicina General'}</p>
+                        <p className="text-sm text-text-sub capitalize">
+                          {appointment.doctor?.doctor_specialties?.map(s => s.specialties?.name).join(', ') || 'Medicina General'}
+                        </p>
                       </div>
                     </div>
 

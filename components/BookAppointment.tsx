@@ -46,6 +46,14 @@ export default function BookAppointment() {
             if (session) {
                 const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
                 setDoctorProfile(data);
+
+                // Auto-select modality based on doctor's preference
+                if (data?.consultation_modality === 'presencial') {
+                    setVisitType('presencial');
+                } else if (data?.consultation_modality === 'virtual') {
+                    setVisitType('virtual');
+                }
+                // If 'both', keep default 'presencial'
             }
         };
         fetchDoctor();
@@ -110,7 +118,6 @@ export default function BookAppointment() {
             modality: visitType,
             status: 'confirmed',
             notes: reason,
-            specialty: 'Medicina General',
             created_at: new Date()
         });
 
@@ -347,50 +354,57 @@ export default function BookAppointment() {
                                 Modalidad
                             </label>
                             <div className="flex flex-col sm:flex-row gap-3">
-                                <label className="flex-1 cursor-pointer group">
-                                    <input
-                                        type="radio"
-                                        name="visitType"
-                                        value="presencial"
-                                        checked={visitType === 'presencial'}
-                                        onChange={() => setVisitType('presencial')}
-                                        className="peer sr-only"
-                                    />
-                                    <div className="p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 peer-checked:border-primary peer-checked:bg-primary/5 dark:peer-checked:bg-primary/10 transition-all flex items-center gap-3">
-                                        <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full text-slate-500 peer-checked:bg-primary peer-checked:text-slate-900 transition-colors">
-                                            <span className="material-symbols-outlined">medical_services</span>
+                                {/* Presencial Option */}
+                                {(!doctorProfile || doctorProfile.consultation_modality === 'presencial' || doctorProfile.consultation_modality === 'both') && (
+                                    <label className="flex-1 cursor-pointer group">
+                                        <input
+                                            type="radio"
+                                            name="visitType"
+                                            value="presencial"
+                                            checked={visitType === 'presencial'}
+                                            onChange={() => setVisitType('presencial')}
+                                            className="peer sr-only"
+                                        />
+                                        <div className="p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 peer-checked:border-primary peer-checked:bg-primary/5 dark:peer-checked:bg-primary/10 transition-all flex items-center gap-3">
+                                            <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full text-slate-500 peer-checked:bg-primary peer-checked:text-slate-900 transition-colors">
+                                                <span className="material-symbols-outlined">medical_services</span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-sm font-bold text-slate-900 dark:text-white">Presencial</span>
+                                                <span className="block text-xs text-slate-500">Consulta en consultorio</span>
+                                            </div>
+                                            <div className="ml-auto opacity-0 peer-checked:opacity-100 transition-opacity text-primary">
+                                                <span className="material-symbols-outlined">check_circle</span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span className="block text-sm font-bold text-slate-900 dark:text-white">Presencial</span>
-                                            <span className="block text-xs text-slate-500">Consulta en consultorio</span>
+                                    </label>
+                                )}
+
+                                {/* Virtual Option */}
+                                {(!doctorProfile || doctorProfile.consultation_modality === 'virtual' || doctorProfile.consultation_modality === 'both') && (
+                                    <label className="flex-1 cursor-pointer group">
+                                        <input
+                                            type="radio"
+                                            name="visitType"
+                                            value="virtual"
+                                            checked={visitType === 'virtual'}
+                                            onChange={() => setVisitType('virtual')}
+                                            className="peer sr-only"
+                                        />
+                                        <div className="p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 peer-checked:border-primary peer-checked:bg-primary/5 dark:peer-checked:bg-primary/10 transition-all flex items-center gap-3">
+                                            <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full text-slate-500 peer-checked:bg-primary peer-checked:text-slate-900 transition-colors">
+                                                <span className="material-symbols-outlined">videocam</span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-sm font-bold text-slate-900 dark:text-white">Consulta Virtual</span>
+                                                <span className="block text-xs text-slate-500">Videollamada remota</span>
+                                            </div>
+                                            <div className="ml-auto opacity-0 peer-checked:opacity-100 transition-opacity text-primary">
+                                                <span className="material-symbols-outlined">check_circle</span>
+                                            </div>
                                         </div>
-                                        <div className="ml-auto opacity-0 peer-checked:opacity-100 transition-opacity text-primary">
-                                            <span className="material-symbols-outlined">check_circle</span>
-                                        </div>
-                                    </div>
-                                </label>
-                                <label className="flex-1 cursor-pointer group">
-                                    <input
-                                        type="radio"
-                                        name="visitType"
-                                        value="virtual"
-                                        checked={visitType === 'virtual'}
-                                        onChange={() => setVisitType('virtual')}
-                                        className="peer sr-only"
-                                    />
-                                    <div className="p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 peer-checked:border-primary peer-checked:bg-primary/5 dark:peer-checked:bg-primary/10 transition-all flex items-center gap-3">
-                                        <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full text-slate-500 peer-checked:bg-primary peer-checked:text-slate-900 transition-colors">
-                                            <span className="material-symbols-outlined">videocam</span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-sm font-bold text-slate-900 dark:text-white">Consulta Virtual</span>
-                                            <span className="block text-xs text-slate-500">Videollamada remota</span>
-                                        </div>
-                                        <div className="ml-auto opacity-0 peer-checked:opacity-100 transition-opacity text-primary">
-                                            <span className="material-symbols-outlined">check_circle</span>
-                                        </div>
-                                    </div>
-                                </label>
+                                    </label>
+                                )}
                             </div>
                         </div>
 

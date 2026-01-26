@@ -7,7 +7,11 @@ interface Appointment {
   id: string;
   doctor: {
     full_name: string;
-    specialty: string;
+    doctor_specialties: Array<{
+      specialties: {
+        name: string;
+      }
+    }>;
   };
   appointment_date: string;
   appointment_time: string;
@@ -37,8 +41,8 @@ export default function AppointmentHistory() {
 
     // Use !inner if searching to allow filtering on the related table
     const selectQuery = search
-      ? `id, status, appointment_date, appointment_time, doctor:doctor_id!inner(full_name, specialty)`
-      : `id, status, appointment_date, appointment_time, doctor:doctor_id(full_name, specialty)`;
+      ? `id, status, appointment_date, appointment_time, doctor:doctor_id!inner(full_name, doctor_specialties(specialties(name)))`
+      : `id, status, appointment_date, appointment_time, doctor:doctor_id(full_name, doctor_specialties(specialties(name)))`;
 
     let query = supabase
       .from('appointments')
@@ -60,7 +64,7 @@ export default function AppointmentHistory() {
     // Apply Search
     if (search) {
       // Search on the related 'doctor' table columns
-      query = query.or(`full_name.ilike.%${search}%,specialty.ilike.%${search}%`, { foreignTable: 'doctor' });
+      query = query.or(`full_name.ilike.%${search}%`, { foreignTable: 'doctor' });
     }
 
     // Apply Sort
@@ -166,7 +170,9 @@ export default function AppointmentHistory() {
                             {app.id.substring(0, 8)}...
                           </span>
                         </div>
-                        <p className="text-text-sub dark:text-gray-400 font-medium capitalize">{app.doctor?.specialty || 'General'}</p>
+                        <p className="text-text-sub dark:text-gray-400 font-medium capitalize">
+                          {app.doctor?.doctor_specialties?.map(s => s.specialties?.name).join(', ') || 'Medicina General'}
+                        </p>
                         <div className="flex items-center gap-1 mt-2 text-sm text-text-sub dark:text-gray-500 md:hidden">
                           <span className="material-symbols-outlined !text-[16px]">calendar_today</span>
                           {new Date(app.appointment_date + 'T00:00:00').toLocaleDateString()} • {app.appointment_time}

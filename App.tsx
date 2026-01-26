@@ -10,6 +10,9 @@ import AppointmentHistory from './components/AppointmentHistory';
 import AppointmentDetails from './components/AppointmentDetails';
 import PatientDetails from './components/PatientDetails';
 import ProfessionalOnboarding from './components/ProfessionalOnboarding';
+import ProfessionalSidebar from './components/ProfessionalSidebar';
+import PatientDirectory from './components/PatientDirectory';
+import ProfessionalAppointmentHistory from './components/ProfessionalAppointmentHistory';
 
 
 import AIChatbot from './components/AIChatbot';
@@ -349,34 +352,51 @@ function AppContent() {
     return <Navigate to="/login" replace />;
   }
 
+  // Redirigir usuarios autenticados fuera de login/register
+  if (isLoggedIn && (location.pathname === '/login' || location.pathname === '/register')) {
+    if (needsOnboarding) return <Navigate to="/onboarding" replace />;
+    switch (role) {
+      case UserRole.DOCTOR: return <Navigate to="/clinical" replace />;
+      case UserRole.NUTRITIONIST: return <Navigate to="/nutrition" replace />;
+      default: return <Navigate to="/" replace />;
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       {isLoggedIn && role && <Header role={role} userName={userName} avatarUrl={avatarUrl} onLogout={handleLogout} needsOnboarding={needsOnboarding} />}
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/register" element={<Register />} />
+      <div className="flex flex-1 relative">
+        {isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) && !needsOnboarding && (
+          <ProfessionalSidebar role={role} />
+        )}
+        <main className="flex-grow overflow-y-auto">
+          <Routes>
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/register" element={<Register />} />
 
-          <Route path="/" element={
-            role === UserRole.PATIENT ? <PatientDashboard userName={userName} /> :
-              role === UserRole.DOCTOR ? <Navigate to="/clinical" replace /> :
-                role === UserRole.NUTRITIONIST ? <Navigate to="/nutrition" replace /> :
-                  <Navigate to="/login" replace />
-          } />
+            <Route path="/" element={
+              role === UserRole.PATIENT ? <PatientDashboard userName={userName} /> :
+                role === UserRole.DOCTOR ? <Navigate to="/clinical" replace /> :
+                  role === UserRole.NUTRITIONIST ? <Navigate to="/nutrition" replace /> :
+                    <Navigate to="/login" replace />
+            } />
 
-          <Route path="/clinical" element={role === UserRole.DOCTOR ? <ClinicalDashboard /> : <Navigate to="/login" />} />
-          <Route path="/book-appointment" element={role === UserRole.DOCTOR ? <BookAppointment /> : <Navigate to="/login" />} />
-          <Route path="/consultation/:id" element={role === UserRole.DOCTOR ? <Consultation /> : <Navigate to="/login" />} />
-          <Route path="/nutrition" element={role === UserRole.NUTRITIONIST ? <NutritionistDashboard /> : <Navigate to="/login" />} />
-          <Route path="/nutrition/patient-details/:id" element={role === UserRole.NUTRITIONIST ? <PatientDetails /> : <Navigate to="/login" />} />
-          <Route path="/nutrition/evaluate/:id/:evaluationId?" element={role === UserRole.NUTRITIONIST ? <NutritionistEvaluation /> : <Navigate to="/login" />} />
-          <Route path="/request-appointment" element={role === UserRole.PATIENT ? <RequestAppointment /> : <Navigate to="/login" />} />
-          <Route path="/appointment-history" element={role === UserRole.PATIENT ? <AppointmentHistory /> : <Navigate to="/login" />} />
-          <Route path="/appointment-details/:id" element={role === UserRole.PATIENT ? <AppointmentDetails /> : <Navigate to="/login" />} />
-          <Route path="/profile" element={isLoggedIn ? <UserProfile /> : <Navigate to="/login" />} />
-          <Route path="/onboarding" element={isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalOnboarding onOnboardingComplete={() => { setNeedsOnboarding(false); if (role === UserRole.DOCTOR) navigate('/clinical'); else if (role === UserRole.NUTRITIONIST) navigate('/nutrition'); }} /> : <Navigate to="/login" />} />
-        </Routes>
-      </main>
+            <Route path="/clinical" element={role === UserRole.DOCTOR ? <ClinicalDashboard /> : <Navigate to="/login" />} />
+            <Route path="/book-appointment" element={role === UserRole.DOCTOR ? <BookAppointment /> : <Navigate to="/login" />} />
+            <Route path="/consultation/:id" element={role === UserRole.DOCTOR ? <Consultation /> : <Navigate to="/login" />} />
+            <Route path="/nutrition" element={role === UserRole.NUTRITIONIST ? <NutritionistDashboard /> : <Navigate to="/login" />} />
+            <Route path="/patient-details/:id" element={isLoggedIn ? <PatientDetails /> : <Navigate to="/login" />} />
+            <Route path="/patients" element={(role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <PatientDirectory /> : <Navigate to="/login" />} />
+            <Route path="/appointment-history-pro" element={(role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalAppointmentHistory /> : <Navigate to="/login" />} />
+            <Route path="/nutrition/evaluate/:id/:evaluationId?" element={role === UserRole.NUTRITIONIST ? <NutritionistEvaluation /> : <Navigate to="/login" />} />
+            <Route path="/request-appointment" element={role === UserRole.PATIENT ? <RequestAppointment /> : <Navigate to="/login" />} />
+            <Route path="/appointment-history" element={role === UserRole.PATIENT ? <AppointmentHistory /> : <Navigate to="/login" />} />
+            <Route path="/appointment-details/:id" element={role === UserRole.PATIENT ? <AppointmentDetails /> : <Navigate to="/login" />} />
+            <Route path="/profile" element={isLoggedIn ? <UserProfile /> : <Navigate to="/login" />} />
+            <Route path="/onboarding" element={isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalOnboarding onOnboardingComplete={() => { setNeedsOnboarding(false); if (role === UserRole.DOCTOR) navigate('/clinical'); else if (role === UserRole.NUTRITIONIST) navigate('/nutrition'); }} /> : <Navigate to="/login" />} />
+          </Routes>
+        </main>
+      </div>
       {isLoggedIn && <AIChatbot />}
     </div>
   );

@@ -20,6 +20,14 @@ export default function UserProfile() {
     });
     const [allSpecialties, setAllSpecialties] = useState<any[]>([]);
     const [mySpecialties, setMySpecialties] = useState<string[]>([]);
+    const [profDetails, setProfDetails] = useState({
+        mpps_registry: '',
+        college_number: '',
+        bio: '',
+        consultation_modality: 'presencial',
+        signature_url: '',
+        working_hours: {} as any
+    });
 
     useEffect(() => {
         getProfile();
@@ -34,27 +42,40 @@ export default function UserProfile() {
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('full_name, cedula, birth_date, gender, blood_type, allergies, avatar_url, role')
+                .select('*')
                 .eq('id', session.user.id)
                 .single();
 
-            if (error) {
-                console.warn('Error fetching profile extras:', error);
-            }
+            if (error) throw error;
 
             if (data) {
+                // Fetch Health Profile data
+                const { data: healthData } = await supabase
+                    .from('perfil_actual_salud')
+                    .select('blood_type, allergies')
+                    .eq('patient_id', session.user.id)
+                    .single();
+
                 setProfile({
                     full_name: data.full_name || '',
                     cedula: data.cedula || '',
                     birth_date: data.birth_date || '',
                     gender: data.gender || 'Masculino',
-                    blood_type: data.blood_type || 'O+',
-                    allergies: data.allergies || '',
                     avatar_url: data.avatar_url || '',
-                    role: data.role || ''
+                    role: data.role || '',
+                    blood_type: healthData?.blood_type || 'O+',
+                    allergies: healthData?.allergies || ''
                 });
 
                 if (data.role === 'doctor' || data.role === 'nutri' || data.role === 'nutritionist') {
+                    setProfDetails({
+                        mpps_registry: data.mpps_registry || '',
+                        college_number: data.college_number || '',
+                        bio: data.bio || '',
+                        consultation_modality: data.consultation_modality || 'presencial',
+                        signature_url: data.signature_url || '',
+                        working_hours: data.working_hours || {}
+                    });
                     getSpecialties(session.user.id);
                 }
             }
@@ -96,16 +117,33 @@ export default function UserProfile() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('No session');
 
-            const updates = {
+            const profileUpdates = {
                 id: session.user.id,
-                ...profile,
+                full_name: profile.full_name,
+                birth_date: profile.birth_date,
+                gender: profile.gender,
+                avatar_url: profile.avatar_url,
+                ...(profile.role !== 'paciente' ? profDetails : {}),
                 updated_at: new Date()
             };
 
-            const { error } = await supabase.from('profiles').upsert(updates);
+            const { error: profileError } = await supabase.from('profiles').upsert(profileUpdates);
+            if (profileError) throw profileError;
 
 
-            if (error) throw error;
+            // Update Health Profile
+            const healthUpdates = {
+                patient_id: session.user.id,
+                blood_type: profile.blood_type,
+                allergies: profile.allergies,
+                updated_at: new Date()
+            };
+
+            const { error: healthError } = await supabase
+                .from('perfil_actual_salud')
+                .upsert(healthUpdates);
+
+            if (healthError) throw healthError;
 
             // Update Specialties if doctor
             if (profile.role === 'doctor' || profile.role === 'nutri' || profile.role === 'nutritionist') {
@@ -114,7 +152,9 @@ export default function UserProfile() {
 
                 // Insert new ones
                 if (mySpecialties.length > 0) {
-                    const specialtyInserts = mySpecialties.map(sid => ({
+                    // Filter duplicates to prevent 409 Conflict
+                    const uniqueSpecs = [...new Set(mySpecialties)];
+                    const specialtyInserts = uniqueSpecs.map(sid => ({
                         doctor_id: session.user.id,
                         specialty_id: sid
                     }));
@@ -136,7 +176,7 @@ export default function UserProfile() {
     };
 
     return (
-        <div className="min-h-screen bg-background-light dark:bg-background-dark p-4 md:p-8 font-display">
+        <div className="min-h-full bg-background-light dark:bg-background-dark p-4 md:p-8 font-display">
             <div className="max-w-2xl mx-auto">
                 <div className="mb-6 flex items-center gap-4">
                     <Link to="/" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -275,6 +315,89 @@ export default function UserProfile() {
                                         ))}
                                     </div>
                                     <p className="text-xs text-slate-400 mt-2">Seleccione todas las que apliquen.</p>
+                                </div>
+                            )}
+
+                            {(profile.role === 'doctor' || profile.role === 'nutri' || profile.role === 'nutritionist') && (
+                                <div className="space-y-6 animate-fade-in border-t border-slate-100 dark:border-slate-800 pt-6">
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <span className="material-symbols-outlined">settings_suggest</span>
+                                        Configuración Profesional
+                                    </h3>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Registro MPPS</label>
+                                            <input
+                                                type="text"
+                                                value={profDetails.mpps_registry}
+                                                onChange={e => setProfDetails({ ...profDetails, mpps_registry: e.target.value })}
+                                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Cómite Elector / Colegio</label>
+                                            <input
+                                                type="text"
+                                                value={profDetails.college_number}
+                                                onChange={e => setProfDetails({ ...profDetails, college_number: e.target.value })}
+                                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Biografía Médica</label>
+                                        <textarea
+                                            value={profDetails.bio}
+                                            onChange={e => setProfDetails({ ...profDetails, bio: e.target.value })}
+                                            rows={3}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Sello y Firma Digital</label>
+                                            <div
+                                                className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50/50 cursor-pointer hover:bg-slate-50 transition-colors"
+                                                onClick={() => {
+                                                    const url = prompt("URL del sello digital (PNG sugerido):", profDetails.signature_url);
+                                                    if (url !== null) setProfDetails({ ...profDetails, signature_url: url });
+                                                }}
+                                            >
+                                                {profDetails.signature_url ? (
+                                                    <img src={profDetails.signature_url} alt="Firma" className="h-20 object-contain" />
+                                                ) : (
+                                                    <>
+                                                        <span className="material-symbols-outlined text-slate-300 text-3xl">draw</span>
+                                                        <p className="text-[10px] text-slate-400 mt-1 font-bold">Subir Sello / Firma</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Modalidad</label>
+                                            <div className="flex flex-col gap-2">
+                                                {['presencial', 'virtual', 'both'].map(m => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => setProfDetails({ ...profDetails, consultation_modality: m })}
+                                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-xs font-bold transition-all ${profDetails.consultation_modality === m
+                                                            ? 'bg-primary/10 border-primary text-primary-dark'
+                                                            : 'bg-white border-slate-200 text-slate-500'
+                                                            }`}
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">
+                                                            {m === 'virtual' ? 'videocam' : m === 'presencial' ? 'home_health' : 'all_inclusive'}
+                                                        </span>
+                                                        {m === 'virtual' ? 'Sólo Virtual' : m === 'presencial' ? 'Sólo Presencial' : 'Híbrida (Ambas)'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

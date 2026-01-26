@@ -240,7 +240,7 @@ export default function NutritionistDashboard() {
                                                         fatTrend="0.0"
                                                         status="En Meta"
                                                         initials={patient.full_name ? patient.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'P'}
-                                                        onEdit={() => navigate(`/nutrition/patient-details/${patient.id}`)}
+                                                        onEdit={() => navigate(`/patient-details/${patient.id}`)}
                                                     />
                                                 ))
                                             ) : (

@@ -83,10 +83,11 @@ export default function Consultation() {
                         cedula,
                         birth_date,
                         gender,
-                        blood_type,
-                        allergies,
-                        avatar_url
-                        
+                        avatar_url,
+                        perfil_actual_salud (
+                            blood_type,
+                            allergies
+                        )
                     )
                 `)
                 .eq('id', id)
@@ -346,7 +347,16 @@ export default function Consultation() {
     if (loading) return <div className="h-screen flex items-center justify-center text-slate-500">Cargando datos del paciente...</div>;
     if (!data) return <div className="h-screen flex items-center justify-center text-red-500">No se encontró la cita</div>;
 
-    const patient = data.patient || {};
+    const patientRaw = data.patient || {};
+    const healthData = Array.isArray(patientRaw.perfil_actual_salud)
+        ? patientRaw.perfil_actual_salud[0]
+        : patientRaw.perfil_actual_salud || {};
+
+    const patient = {
+        ...patientRaw,
+        blood_type: healthData.blood_type,
+        allergies: healthData.allergies
+    };
 
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased overflow-hidden h-[calc(100vh-64px)] flex transition-colors duration-200">
@@ -387,12 +397,21 @@ export default function Consultation() {
                         {/* Patient Header Card */}
                         <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
                             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                <div>
-                                    <div className="flex items-center gap-3">
-                                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Entrada de Consulta</h2>
-                                        <span className="bg-primary/20 text-green-700 dark:text-green-400 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">En Curso</span>
+                                <div className="flex items-center gap-4 w-full md:w-auto">
+                                    <button
+                                        onClick={() => navigate('/clinical')}
+                                        className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                        title="Volver al Dashboard"
+                                    >
+                                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">arrow_back</span>
+                                    </button>
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Entrada de Consulta</h2>
+                                            <span className="bg-primary/20 text-green-700 dark:text-green-400 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">En Curso</span>
+                                        </div>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Registrando datos clínicos para el encuentro actual.</p>
                                     </div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Registrando datos clínicos para el encuentro actual.</p>
                                 </div>
                                 <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                                     <button className={`flex items-center gap-2 px-4 py-1.5 shadow-sm rounded-md text-sm font-medium transition-all ${data.modality !== 'virtual' ? 'bg-white dark:bg-card-dark text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>

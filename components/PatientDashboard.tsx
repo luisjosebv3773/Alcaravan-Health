@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { supabase } from '../services/supabase';
+import PatientClinicalProfile from './PatientClinicalProfile';
+import Modal from './Modal';
 
 const data = [
   { subject: 'Músculo', A: 120, B: 110, fullMark: 150 },
@@ -20,13 +22,47 @@ interface Appointment {
   visit_type: string;
   doctor: {
     full_name: string;
-    specialty: string;
+    doctor_specialties: Array<{
+      specialties: {
+        name: string;
+      }
+    }>;
   };
 }
 
 export default function PatientDashboard({ userName }: { userName?: string }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [healthProfile, setHealthProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loadingHealth, setLoadingHealth] = useState(true);
+  const [showClinicalProfile, setShowClinicalProfile] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // 1. Fetch Profile (for gender)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      setProfile(profileData);
+
+      // 2. Fetch Health Profile
+      const { data: healthData } = await supabase
+        .from('perfil_actual_salud')
+        .select('*')
+        .eq('patient_id', session.user.id)
+        .single();
+      setHealthProfile(healthData);
+      setLoadingHealth(false);
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -42,7 +78,9 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
           visit_type,
           doctor:doctor_id (
             full_name,
-            specialty
+            doctor_specialties (
+              specialties ( name )
+            )
           )
         `)
         .eq('patient_id', session.user.id)
@@ -75,14 +113,21 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
       <section className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="max-w-2xl">
           <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2">Buenos días, {userName || 'Usuario'}</h2>
-          <p className="text-text-sub dark:text-gray-400 text-lg">Tus últimas mediciones muestran tendencias prometedoras. Mantengamos tus estadísticas en <span className="text-primary font-bold">verde</span> hoy.</p>
+          <p className="text-text-sub dark:text-gray-400 text-lg">
+            {healthProfile
+              ? `Tu IMC es de ${healthProfile.bmi.toFixed(1)} (${healthProfile.bmi < 25 ? 'Saludable' : 'Monitorear'}). Mantengamos tus estadísticas en verde hoy.`
+              : 'Bienvenido a tu portal de salud. Completa tu primera evaluación para ver tus métricas.'}
+          </p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <span className="material-symbols-outlined !text-[20px]">download</span> Reporte Completo
+          <button
+            onClick={() => setShowClinicalProfile(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-slate-900 border border-primary rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:brightness-105 transition-all"
+          >
+            <span className="material-symbols-outlined !text-[20px]">medical_services</span> Perfil Clínico
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark text-black rounded-lg text-sm font-bold shadow-md shadow-primary/20 transition-colors">
-            <span className="material-symbols-outlined !text-[20px]">add</span> Registrar Actividad
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <span className="material-symbols-outlined !text-[20px]">download</span> Reporte
           </button>
         </div>
       </section>
@@ -90,9 +135,30 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <MetricCard icon="monitor_weight" label="IMC (Índice de Masa Corporal)" value="24.5" status="Normal" color="status-green" subtext="Tu peso es óptimo para tu altura." />
-            <MetricCard icon="straighten" label="ICC (Índice Cintura-Cadera)" value="0.86" status="Moderado" color="status-amber" subtext="Riesgo ligeramente elevado. Monitorear dieta." />
-            <MetricCard icon="cardiology" label="Nivel Grasa Visceral" value="9" status="Saludable" color="status-green" subtext="Los niveles de grasa interna están en rango seguro." />
+            <MetricCard
+              icon="monitor_weight"
+              label="IMC (Índice de Masa Corporal)"
+              value={healthProfile?.bmi?.toFixed(1) || '---'}
+              status={healthProfile?.bmi < 18.5 ? 'Bajo Peso' : healthProfile?.bmi < 25 ? 'Normal' : healthProfile?.bmi < 30 ? 'Sobrepeso' : 'Obesidad'}
+              color={healthProfile?.bmi < 25 ? 'primary' : 'status-amber'}
+              subtext={healthProfile?.bmi < 25 ? "Tu peso es óptimo para tu altura." : "Considera revisar tu plan nutricional."}
+            />
+            <MetricCard
+              icon="straighten"
+              label="ICC (Índice Cintura-Cadera)"
+              value={healthProfile?.whr?.toFixed(2) || '---'}
+              status={healthProfile?.whr < (profile?.gender === 'Femenino' ? 0.85 : 0.95) ? 'Saludable' : 'Riesgo'}
+              color={healthProfile?.whr < (profile?.gender === 'Femenino' ? 0.85 : 0.95) ? 'primary' : 'status-red'}
+              subtext="Mide la distribución de grasa abdominal."
+            />
+            <MetricCard
+              icon="cardiology"
+              label="Nivel Grasa Visceral"
+              value={healthProfile?.visceral_fat_level || '---'}
+              status={healthProfile?.visceral_fat_level < 10 ? 'Saludable' : 'Elevado'}
+              color={healthProfile?.visceral_fat_level < 10 ? 'primary' : 'status-amber'}
+              subtext="Grasa que rodea los órganos internos."
+            />
           </div>
 
           <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex flex-col min-h-[400px]">
@@ -115,20 +181,33 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
 
             <div className="flex flex-col md:flex-row items-center gap-8 flex-grow">
               <div className="w-full md:w-1/2 h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-                    <PolarGrid stroke="#e5e7eb" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }} />
-                    <Radar name="Tú" dataKey="A" stroke="#13ec5b" fill="#13ec5b" fillOpacity={0.6} />
-                    <Radar name="Objetivo" dataKey="B" stroke="#9ca3af" fill="#9ca3af" fillOpacity={0.2} strokeDasharray="4 4" />
-                  </RadarChart>
-                </ResponsiveContainer>
+                {healthProfile ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
+                      { subject: 'Grasa (%)', A: healthProfile.body_fat_pct, B: profile?.gender === 'Femenino' ? 22 : 15, fullMark: 40 },
+                      { subject: 'Agua (%)', A: healthProfile.body_water_pct, B: profile?.gender === 'Femenino' ? 55 : 60, fullMark: 100 },
+                      { subject: 'Músculo (%)', A: (healthProfile.muscle_mass_kg / (healthProfile.weight || 1)) * 100, B: profile?.gender === 'Femenino' ? 35 : 45, fullMark: 60 },
+                      { subject: 'Proteína (%)', A: healthProfile.protein_pct, B: profile?.gender === 'Femenino' ? 15 : 18, fullMark: 25 },
+                      { subject: 'Visceral', A: healthProfile.visceral_fat_level * 2, B: 10, fullMark: 50 },
+                    ]}>
+                      <PolarGrid stroke="#e5e7eb" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }} />
+                      <Radar name="Tú" dataKey="A" stroke="#13ec5b" fill="#13ec5b" fillOpacity={0.6} />
+                      <Radar name="Objetivo" dataKey="B" stroke="#9ca3af" fill="#9ca3af" fillOpacity={0.2} strokeDasharray="4 4" />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-300 italic text-sm gap-2">
+                    <span className="material-symbols-outlined text-4xl opacity-20">analytics</span>
+                    Realiza tu primera evaluación para ver tu radar.
+                  </div>
+                )}
               </div>
               <div className="flex-1 grid grid-cols-2 gap-x-8 gap-y-6 w-full">
-                <SubMetric label="Masa Muscular" value="38.2" unit="kg" progress={85} trend="+2.1kg" color="primary" />
-                <SubMetric label="Grasa Corporal" value="18.5" unit="%" progress={45} trend="-0.5%" color="status-amber" />
-                <SubMetric label="Agua Corporal" value="58.4" unit="%" progress={70} trend="Óptima" color="primary" />
-                <SubMetric label="Metabolismo" value="1740" unit="kcal" progress={90} trend="Alto" color="primary" />
+                <SubMetric label="Masa Muscular" value={healthProfile?.muscle_mass_kg?.toFixed(1) || '---'} unit="kg" progress={85} trend="Estimada" color="primary" />
+                <SubMetric label="Grasa Corporal" value={healthProfile?.body_fat_pct?.toFixed(1) || '---'} unit="%" progress={healthProfile?.body_fat_pct * 2} trend="Navy Method" color="status-amber" />
+                <SubMetric label="Agua Corporal" value={healthProfile?.body_water_pct?.toFixed(1) || '---'} unit="%" progress={healthProfile?.body_water_pct} trend="Hidratación" color="primary" />
+                <SubMetric label="Metabolismo (BMR)" value={healthProfile?.bmr_kcal || '---'} unit="kcal" progress={70} trend="Basal" color="primary" />
               </div>
             </div>
           </div>
@@ -136,7 +215,7 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
 
         <div className="lg:col-span-4 flex flex-col gap-6">
           <AppointmentCard appointments={appointments} loading={loadingAppointments} />
-          <WellnessGoals />
+          <WellnessGoals weight={healthProfile?.weight} />
           <EducationTip />
         </div>
       </div>
@@ -150,6 +229,23 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
           <TrendCard label="Grasa Visceral" value="Nivel 9" trend="Bien" color="primary" />
         </div>
       </section>
+
+      {/* Clinical Profile Dialog */}
+      {profile?.id && (
+        <Modal
+          isOpen={showClinicalProfile}
+          onClose={() => setShowClinicalProfile(false)}
+          title="Mi Perfil Clínico"
+          maxWidth="full"
+        >
+          <div className="h-[85vh] w-full">
+            <PatientClinicalProfile
+              patientId={profile.id}
+              onClose={() => setShowClinicalProfile(false)}
+            />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -212,7 +308,9 @@ function AppointmentCard({ appointments, loading }: { appointments: Appointment[
             <p className="text-sm font-bold text-text-sub mb-1">
               {new Date(upcoming.appointment_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })} • {upcoming.appointment_time}
             </p>
-            <h4 className="font-bold text-lg mb-1 capitalize">{upcoming.doctor?.specialty || 'General'}</h4>
+            <h4 className="font-bold text-lg mb-1 capitalize">
+              {upcoming.doctor?.doctor_specialties?.map(s => s.specialties?.name).join(', ') || 'Medicina General'}
+            </h4>
             <div className="flex items-center gap-2 mb-3">
               <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
                 {upcoming.doctor?.full_name?.charAt(0) || 'D'}
@@ -259,7 +357,8 @@ function AppointmentCard({ appointments, loading }: { appointments: Appointment[
   );
 }
 
-function WellnessGoals() {
+function WellnessGoals({ weight }: { weight?: number }) {
+  const waterGoal = weight ? Math.round(weight * 35 / 250) : 10;
   return (
     <div className="bg-background-light dark:bg-background-dark border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-2">
@@ -267,17 +366,19 @@ function WellnessGoals() {
         <h3 className="text-lg font-bold">Metas Diarias</h3>
       </div>
       {[
-        { title: "Beber 2.5L Agua", sub: "Actual: 1.2L", done: false },
-        { title: "15 min estiramiento", sub: "Salud de espalda", done: false },
-        { title: "Tomar Vitaminas", sub: "Completado a las 8:30 AM", done: true },
+        { title: `Beber ${waterGoal} vasos de Agua`, sub: `Meta personalizada: ${(waterGoal * 0.25).toFixed(1)}L` },
+        { title: "15 min estiramiento", sub: "Salud de espalda" },
+        { title: "Tomar Vitaminas", sub: "Recomendado por tu nutri" },
       ].map((g, i) => (
-        <label key={i} className="flex items-start gap-3 cursor-pointer group">
-          <input checked={g.done} readOnly type="checkbox" className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-0.5" />
-          <div className="flex flex-col">
-            <span className={`text-sm font-medium transition-colors ${g.done ? 'line-through text-gray-400' : 'group-hover:text-primary'}`}>{g.title}</span>
-            <span className={`text-xs ${g.done ? 'text-primary font-bold' : 'text-text-sub'}`}>{g.sub}</span>
+        <div key={i} className="flex items-start gap-3 group">
+          <div className="relative mt-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-primary block"></span>
           </div>
-        </label>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-text-primary dark:text-gray-200">{g.title}</span>
+            <span className="text-xs text-text-sub">{g.sub}</span>
+          </div>
+        </div>
       ))}
     </div>
   );

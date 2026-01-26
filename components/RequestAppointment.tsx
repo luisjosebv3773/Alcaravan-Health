@@ -8,6 +8,7 @@ interface Doctor {
   id: string;
   full_name: string;
   specialty: string;
+  consultation_modality?: string;
 }
 
 export default function RequestAppointment() {
@@ -27,6 +28,7 @@ export default function RequestAppointment() {
   // Form States
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState('');
+  const [selectedDoctorData, setSelectedDoctorData] = useState<Doctor | null>(null);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [visitType, setVisitType] = useState('first-time');
@@ -101,10 +103,29 @@ export default function RequestAppointment() {
       const filtered = doctors.filter(d => d.specialty === selectedSpecialty);
       setAvailableDoctors(filtered);
       setSelectedDoctor(''); // Reset doctor selection
+      setSelectedDoctorData(null);
     } else {
       setAvailableDoctors([]);
     }
   }, [selectedSpecialty, doctors]);
+
+  // Update doctor data and adjust modality when doctor changes
+  useEffect(() => {
+    if (selectedDoctor) {
+      const doctor = availableDoctors.find(d => d.id === selectedDoctor);
+      setSelectedDoctorData(doctor || null);
+
+      // Auto-select modality if doctor only has one option
+      if (doctor?.consultation_modality === 'presencial') {
+        setModality('presencial');
+      } else if (doctor?.consultation_modality === 'virtual') {
+        setModality('virtual');
+      }
+      // If 'both', keep current selection
+    } else {
+      setSelectedDoctorData(null);
+    }
+  }, [selectedDoctor, availableDoctors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -310,48 +331,59 @@ export default function RequestAppointment() {
 
             <div className="space-y-3 pt-2">
               <label className="text-sm font-semibold text-text-main dark:text-gray-200 block">Modalidad de la Consulta</label>
+              {!selectedDoctor && (
+                <p className="text-xs text-text-sub italic">Seleccione un médico para ver las modalidades disponibles</p>
+              )}
               <div className="grid grid-cols-2 gap-4">
-                <label className={`
-                        cursor-pointer border rounded-xl p-4 flex flex-col items-center gap-2 transition-all
-                        ${modality === 'presencial'
-                    ? 'bg-primary/10 border-primary text-primary-dark dark:text-primary ring-1 ring-primary'
-                    : 'bg-background-light dark:bg-background-dark border-gray-200 dark:border-gray-700 text-text-sub hover:border-gray-300 dark:hover:border-gray-600'}
-                    `}>
-                  <input
-                    type="radio"
-                    name="modality"
-                    value="presencial"
-                    checked={modality === 'presencial'}
-                    onChange={() => setModality('presencial')}
-                    className="sr-only"
-                  />
-                  <span className="material-symbols-outlined text-3xl">location_on</span>
-                  <div className="text-center">
-                    <span className="block font-bold text-sm">Presencial</span>
-                    <span className="text-xs opacity-80">En consultorio</span>
-                  </div>
-                </label>
+                {/* Presencial Option */}
+                {(!selectedDoctorData || selectedDoctorData.consultation_modality === 'presencial' || selectedDoctorData.consultation_modality === 'both') && (
+                  <label className={`
+                          cursor-pointer border rounded-xl p-4 flex flex-col items-center gap-2 transition-all
+                          ${modality === 'presencial'
+                      ? 'bg-primary/10 border-primary text-primary-dark dark:text-primary ring-1 ring-primary'
+                      : 'bg-background-light dark:bg-background-dark border-gray-200 dark:border-gray-700 text-text-sub hover:border-gray-300 dark:hover:border-gray-600'}
+                      `}>
+                    <input
+                      type="radio"
+                      name="modality"
+                      value="presencial"
+                      checked={modality === 'presencial'}
+                      onChange={() => setModality('presencial')}
+                      className="sr-only"
+                      disabled={!selectedDoctor}
+                    />
+                    <span className="material-symbols-outlined text-3xl">location_on</span>
+                    <div className="text-center">
+                      <span className="block font-bold text-sm">Presencial</span>
+                      <span className="text-xs opacity-80">En consultorio</span>
+                    </div>
+                  </label>
+                )}
 
-                <label className={`
-                        cursor-pointer border rounded-xl p-4 flex flex-col items-center gap-2 transition-all
-                        ${modality === 'virtual'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500'
-                    : 'bg-background-light dark:bg-background-dark border-gray-200 dark:border-gray-700 text-text-sub hover:border-gray-300 dark:hover:border-gray-600'}
-                    `}>
-                  <input
-                    type="radio"
-                    name="modality"
-                    value="virtual"
-                    checked={modality === 'virtual'}
-                    onChange={() => setModality('virtual')}
-                    className="sr-only"
-                  />
-                  <span className="material-symbols-outlined text-3xl">videocam</span>
-                  <div className="text-center">
-                    <span className="block font-bold text-sm">Virtual</span>
-                    <span className="text-xs opacity-80">Google Meet</span>
-                  </div>
-                </label>
+                {/* Virtual Option */}
+                {(!selectedDoctorData || selectedDoctorData.consultation_modality === 'virtual' || selectedDoctorData.consultation_modality === 'both') && (
+                  <label className={`
+                          cursor-pointer border rounded-xl p-4 flex flex-col items-center gap-2 transition-all
+                          ${modality === 'virtual'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500'
+                      : 'bg-background-light dark:bg-background-dark border-gray-200 dark:border-gray-700 text-text-sub hover:border-gray-300 dark:hover:border-gray-600'}
+                      `}>
+                    <input
+                      type="radio"
+                      name="modality"
+                      value="virtual"
+                      checked={modality === 'virtual'}
+                      onChange={() => setModality('virtual')}
+                      className="sr-only"
+                      disabled={!selectedDoctor}
+                    />
+                    <span className="material-symbols-outlined text-3xl">videocam</span>
+                    <div className="text-center">
+                      <span className="block font-bold text-sm">Virtual</span>
+                      <span className="text-xs opacity-80">Google Meet</span>
+                    </div>
+                  </label>
+                )}
               </div>
               {modality === 'virtual' && (
                 <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs rounded-lg mt-2">

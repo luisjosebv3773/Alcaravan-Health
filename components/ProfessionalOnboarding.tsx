@@ -216,7 +216,9 @@ export default function ProfessionalOnboarding({ onOnboardingComplete }: { onOnb
                 await supabase.from('doctor_specialties').delete().eq('doctor_id', session.user.id);
 
                 if (selectedSpecialties.length > 0) {
-                    const specsToInsert = selectedSpecialties.map(sid => ({
+                    // Filter duplicates to prevent 409 Conflict
+                    const uniqueSelected = [...new Set(selectedSpecialties)];
+                    const specsToInsert = uniqueSelected.map(sid => ({
                         doctor_id: session.user.id,
                         specialty_id: sid
                     }));
