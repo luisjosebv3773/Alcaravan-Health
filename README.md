@@ -17,14 +17,18 @@ El sistema maneja tres roles principales con interfaces y funcionalidades person
 - **Notificaciones en Tiempo Real**: Sistema de alertas integrado con Firebase Cloud Messaging (FCM).
 - **Asistente IA (Gemini)**: Chatbot integrado para responder dudas generales de salud y navegar por la plataforma.
 - **Evaluaciones Nutricionales**: Herramientas específicas para seguimiento de composición corporal y planes alimenticios.
+- **DarkMode "Emerald"**: Interfaz dual (clara/oscura) con una estética moderna basada en una paleta esmeralda técnica.
+- **Recuperación de Contraseña**: Flujo completo de restablecimiento de contraseña vía email integrado con Supabase Auth.
+- **Integridad de Datos**: Sistema de solo lectura para consultas finalizadas, garantizando que el historial médico no sea alterado.
 
 ## 🛠️ Stack Tecnológico
 
 ### Frontend
 - **React 19**: Biblioteca UI principal.
 - **Vite**: Build tool y entorno de desarrollo rápido.
-- **Tailwind CSS**: Framework de estilos para un diseño moderno y responsivo.
+- **Tailwind CSS**: Framework de estilos para un diseño moderno y responsivo con soporte para modo oscuro dinámico.
 - **React Router**: Manejo de navegación y rutas protegidas.
+- **Lucide React / Material Symbols**: Iconografía moderna y funcional.
 
 ### Backend y Servicios
 - **Supabase**:
