@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import { supabase } from '../services/supabase';
 import PatientClinicalProfile from './PatientClinicalProfile';
@@ -28,6 +28,7 @@ interface Appointment {
       }
     }>;
   };
+  status: string;
 }
 
 export default function PatientDashboard({ userName }: { userName?: string }) {
@@ -76,6 +77,7 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
           appointment_date,
           appointment_time,
           visit_type,
+          status,
           doctor:doctor_id (
             full_name,
             doctor_specialties (
@@ -283,6 +285,7 @@ function SubMetric({ label, value, unit, progress, trend, color }: any) {
 }
 
 function AppointmentCard({ appointments, loading }: { appointments: Appointment[], loading: boolean }) {
+  const navigate = useNavigate();
   if (loading) {
     return (
       <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex items-center justify-center min-h-[200px]">
@@ -318,8 +321,24 @@ function AppointmentCard({ appointments, loading }: { appointments: Appointment[
               <span className="text-sm font-medium">{upcoming.doctor?.full_name || 'Doctor'}</span>
             </div>
             <div className="flex gap-2">
-              <button className="px-3 py-1.5 text-xs font-bold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">Reprogramar</button>
-              <button className="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded transition-colors">Detalles</button>
+              <button
+                onClick={() => navigate('/request-appointment', {
+                  state: { rescheduleId: upcoming.id, initialReason: upcoming.visit_type }
+                })}
+                disabled={upcoming.status !== 'pending'}
+                className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${upcoming.status === 'pending'
+                  ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  : 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-900 text-gray-400'
+                  }`}
+              >
+                Reprogramar
+              </button>
+              <button
+                onClick={() => navigate(`/appointment-details/${upcoming.id}`)}
+                className="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded transition-colors"
+              >
+                Detalles
+              </button>
             </div>
           </div>
 

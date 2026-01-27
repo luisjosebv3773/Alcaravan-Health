@@ -46,13 +46,24 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
             setHealthProfile(hp);
 
             // 3. Fetch Unified History (Consultations & Evaluations)
+            // Fetch Unified History
             const [consultationsRes, evalsRes] = await Promise.all([
-                supabase.from('consultations').select('id, created_at, reason, diagnosis, doctor_id').eq('patient_id', patientId).order('created_at', { ascending: false }),
-                supabase.from('nutritional_evaluations').select('id, created_at, ai_summary, nutritionist_id, metrics').eq('patient_id', patientId).order('created_at', { ascending: false })
+                supabase.from('consultations')
+                    .select('*, doctor:doctor_id(full_name), appointments(visit_type)')
+                    .eq('patient_id', patientId)
+                    .order('created_at', { ascending: false }),
+                supabase.from('nutritional_evaluations')
+                    .select('*')
+                    .eq('patient_id', patientId)
+                    .order('created_at', { ascending: false })
             ]);
 
             const combinedHistory = [
-                ...(consultationsRes.data || []).map(c => ({ ...c, type: 'clinical' })),
+                ...(consultationsRes.data || []).map(c => ({
+                    ...c,
+                    type: 'clinical',
+                    visit_type: c.appointments?.visit_type
+                })),
                 ...(evalsRes.data || []).map(e => ({ ...e, type: 'nutrition' }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -239,7 +250,7 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
                         </section>
                     </div>
                 )}
-                分析
+
                 {activeTab === 'history' && (
                     <div className="relative pl-6 space-y-8">
                         <div className="absolute left-[31px] top-4 bottom-4 w-0.5 bg-slate-100 dark:bg-slate-800"></div>
@@ -284,33 +295,142 @@ function MetricItem({ icon, label, value, color = 'primary' }: any) {
     );
 }
 
-function TimelineItem({ item, onClick }: any) {
+function TimelineItem({ item }: any) {
     const isClinical = item.type === 'clinical';
     const date = new Date(item.created_at);
     const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    const getIcon = () => {
+        if (!isClinical) return 'nutrition';
+        switch (item.visit_type) {
+            case 'first-time': return 'person_add';
+            case 'follow-up': return 'stethoscope';
+            case 'results': return 'analytics';
+            case 'emergency': return 'emergency';
+            default: return 'stethoscope';
+        }
+    };
 
     return (
         <div className="relative pl-12">
             <div className={`absolute left-0 top-1 size-10 rounded-full flex items-center justify-center z-10 border-4 border-surface-light dark:border-surface-dark ${isClinical ? 'bg-primary/20 text-primary' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'}`}>
                 <span className="material-symbols-outlined text-lg">
-                    {isClinical ? 'stethoscope' : 'nutrition'}
+                    {getIcon()}
                 </span>
             </div>
-            <div
-                onClick={onClick}
-                className="bg-white dark:bg-slate-800/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-primary/40 cursor-pointer transition-all shadow-sm"
-            >
-                <div className="flex justify-between items-center mb-1">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+            <div className="bg-white dark:bg-slate-800/60 p-5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
                         {isClinical ? (item.reason || 'Consulta Médica') : 'Evaluación Nutricional'}
                     </h4>
-                    <span className="text-[10px] font-medium text-slate-400">{formattedDate}</span>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-full">{formattedDate}</span>
                 </div>
-                <p className="text-xs text-slate-500 line-clamp-2 italic">
-                    {isClinical
-                        ? (item.diagnosis ? "Diag: " + (item.diagnosis.startsWith('[') ? JSON.parse(item.diagnosis).map((d: any) => d.name).join(', ') : item.diagnosis) : "Sin diagnóstico detallado.")
-                        : (item.ai_summary || "Evolución nutricional registrada.")}
-                </p>
+
+                <div className="space-y-4">
+                    {/* Illness History / Enfermedad Actual */}
+                    {isClinical && item.current_illness && (
+                        <div className="flex gap-3">
+                            <span className="material-symbols-outlined text-amber-500 text-lg">medical_services</span>
+                            <div>
+                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">Enfermedad Actual</p>
+                                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                    {item.current_illness}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Diagnosis / Summary */}
+                    <div className="flex gap-3">
+                        <span className="material-symbols-outlined text-primary text-lg">diagnosis</span>
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                {isClinical ? `Diagnóstico (${item.diagnosis_type || 'Presuntivo'})` : 'Evolución'}
+                            </p>
+                            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                {isClinical
+                                    ? (item.diagnosis ? (item.diagnosis.startsWith('[') ? JSON.parse(item.diagnosis).map((d: any) => d.name).join(', ') : item.diagnosis) : "Sin diagnóstico detallado.")
+                                    : (item.ai_summary || "Evolución nutricional registrada.")}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Doctor's Notes / Nota del Médico */}
+                    {isClinical && item.internal_notes && (
+                        <div className="flex gap-3">
+                            <span className="material-symbols-outlined text-slate-400 text-lg">description</span>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Nota del Médico</p>
+                                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap italic">
+                                    {item.internal_notes}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {isClinical && (
+                        <>
+                            {/* Vitals */}
+                            {item.vital_signs && (item.vital_signs.ta || item.vital_signs.fc) && (
+                                <div className="flex gap-3">
+                                    <span className="material-symbols-outlined text-slate-400 text-lg">vital_signs</span>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Signos Vitales</p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-300 font-mono">
+                                            {item.vital_signs.ta && `P.A: ${item.vital_signs.ta} mmHg`}
+                                            {item.vital_signs.fc && ` • F.C: ${item.vital_signs.fc} BPM`}
+                                            {item.vital_signs.temp && ` • Temp: ${item.vital_signs.temp}°C`}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Prescriptions */}
+                            {item.prescription?.items?.length > 0 && (
+                                <div className="flex gap-3">
+                                    <span className="material-symbols-outlined text-emerald-500 text-lg">prescriptions</span>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Tratamiento</p>
+                                        <ul className="mt-1 space-y-1">
+                                            {item.prescription.items.map((med: any, i: number) => (
+                                                <li key={i} className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                    <span className="size-1 rounded-full bg-emerald-500"></span>
+                                                    <span className="font-bold">{med.name}</span> ({med.dose} • {med.frequency})
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Exams */}
+                            {item.exams_requested?.items?.length > 0 && (
+                                <div className="flex gap-3">
+                                    <span className="material-symbols-outlined text-blue-500 text-lg">lab_research</span>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Laboratorios Solicitados</p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">
+                                            {item.exams_requested.items.map((ex: any) => ex.name).join(', ')}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Medical Rest */}
+                            {item.medical_rest?.days && (
+                                <div className="flex gap-3">
+                                    <span className="material-symbols-outlined text-amber-500 text-lg">bed</span>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">Reposo Médico</p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                                            {item.medical_rest.days} días - {item.medical_rest.type}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

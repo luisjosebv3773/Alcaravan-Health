@@ -355,16 +355,23 @@ export default function AppointmentDetails() {
                     Cancelar Cita
                   </button>
                 )}
-                {appointment.status !== 'cancelled' ? (
-                  <button className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-main dark:text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                {appointment.status === 'pending' ? (
+                  <button
+                    onClick={() => navigate('/request-appointment', {
+                      state: { rescheduleId: appointment.id, initialReason: appointment.visit_type }
+                    })}
+                    className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-main dark:text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
                     <span className="material-symbols-outlined text-lg">edit_calendar</span>
                     Reprogramar
                   </button>
                 ) : (
-                  <button className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-main dark:text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
-                    <span className="material-symbols-outlined text-lg">cancel</span>
-                    Cita Cancelada
-                  </button>
+                  appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                    <button className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-main dark:text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
+                      <span className="material-symbols-outlined text-lg">edit_calendar</span>
+                      Reserva Confirmada
+                    </button>
+                  )
                 )}
 
 
@@ -398,176 +405,154 @@ export default function AppointmentDetails() {
           </div>
         </div>
 
-        {/* Clinical Summary Section - Only if appointment is completed and consultation data exists */}
-        {appointment.status === 'completed' && appointment.consultation && (
-          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h4 className="text-lg font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined">clinical_notes</span>
-              Resumen Clínico
-            </h4>
+        {/* Clinical Summary Section - Only if appointment is completed and selected clinical data exists */}
+        {appointment.status === 'completed' && appointment.consultation && (() => {
+          const hasDiagnosis = appointment.consultation.diagnosis && appointment.consultation.diagnosis !== '[]' && appointment.consultation.diagnosis !== '""';
+          const hasPrescription = appointment.consultation.prescription?.items?.length > 0 && appointment.consultation.prescription?.visible !== false;
+          const hasVitalSigns = appointment.consultation.vital_signs && (
+            appointment.consultation.vital_signs.ta ||
+            appointment.consultation.vital_signs.fc ||
+            appointment.consultation.vital_signs.temp ||
+            appointment.consultation.vital_signs.spo2
+          );
+          const hasExams = appointment.consultation.exams_requested?.items?.length > 0 && appointment.consultation.exams_requested?.visible !== false;
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-              {/* Diagnosis */}
-              <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="size-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center justify-center">
-                    <span className="material-symbols-outlined">diagnosis</span>
+          if (!hasDiagnosis && !hasPrescription && !hasVitalSigns && !hasExams) return null;
+
+          return (
+            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h4 className="text-lg font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 mb-6 flex items-center gap-2">
+                <span className="material-symbols-outlined">clinical_notes</span>
+                Resumen Clínico
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                {/* Diagnosis */}
+                {hasDiagnosis && (
+                  <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="size-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center justify-center">
+                        <span className="material-symbols-outlined">diagnosis</span>
+                      </div>
+                      <h5 className="font-bold text-lg">Diagnóstico</h5>
+                    </div>
+                    <div className="space-y-3">
+                      {(() => {
+                        try {
+                          const diags = JSON.parse(appointment.consultation.diagnosis || '[]');
+                          if (Array.isArray(diags) && diags.length > 0) {
+                            return diags.map((d: any, idx: number) => (
+                              <div key={idx} className="flex items-start gap-2">
+                                <span className="text-primary mt-1.5 size-1.5 rounded-full bg-current shrink-0"></span>
+                                <p className="text-text-main dark:text-gray-200">
+                                  <span className="font-bold text-primary mr-2">{d.code}</span>
+                                  {d.name}
+                                </p>
+                              </div>
+                            ));
+                          }
+                          return <p className="text-text-main dark:text-gray-200">{appointment.consultation.diagnosis}</p>;
+                        } catch (e) {
+                          return <p className="text-text-main dark:text-gray-200">{appointment.consultation.diagnosis}</p>;
+                        }
+                      })()}
+                      {appointment.consultation.diagnosis_type && (
+                        <p className="text-xs font-bold text-text-sub uppercase mt-2">Tipo: {appointment.consultation.diagnosis_type}</p>
+                      )}
+                    </div>
                   </div>
-                  <h5 className="font-bold text-lg">Diagnóstico</h5>
-                </div>
-                <div className="space-y-3">
-                  {(() => {
-                    try {
-                      const diags = JSON.parse(appointment.consultation.diagnosis || '[]');
-                      if (Array.isArray(diags) && diags.length > 0) {
-                        return diags.map((d: any, idx: number) => (
-                          <div key={idx} className="flex items-start gap-2">
-                            <span className="text-primary mt-1.5 size-1.5 rounded-full bg-current shrink-0"></span>
-                            <p className="text-text-main dark:text-gray-200">
-                              <span className="font-bold text-primary mr-2">{d.code}</span>
-                              {d.name}
-                            </p>
+                )}
+
+                {/* Prescription / Medications */}
+                {hasPrescription && (
+                  <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="size-10 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center justify-center">
+                        <span className="material-symbols-outlined">prescriptions</span>
+                      </div>
+                      <h5 className="font-bold text-lg">Receta / Medicamentos</h5>
+                    </div>
+                    <ul className="space-y-3">
+                      {appointment.consultation.prescription.items.map((item: any, idx: number) => (
+                        <li key={idx} className="flex items-start gap-3 bg-gray-50 dark:bg-white/5 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                          <div className="flex-grow">
+                            <p className="font-bold text-text-main dark:text-white">{item.name}</p>
+                            <p className="text-sm text-text-sub dark:text-gray-400">{item.dose} • {item.frequency} • {item.duration}</p>
                           </div>
-                        ));
-                      }
-                      return <p className="text-text-main dark:text-gray-200">{appointment.consultation.diagnosis || "No especificado"}</p>;
-                    } catch (e) {
-                      return <p className="text-text-main dark:text-gray-200">{appointment.consultation.diagnosis || "No especificado"}</p>;
-                    }
-                  })()}
-                  <p className="text-xs font-bold text-text-sub uppercase mt-2">Tipo: {appointment.consultation.diagnosis_type}</p>
-                </div>
-              </div>
-
-              {/* Prescription / Medications */}
-              {appointment.consultation.prescription?.items?.length > 0 && appointment.consultation.prescription?.visible !== false && (
-                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="size-10 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 flex items-center justify-center">
-                      <span className="material-symbols-outlined">prescriptions</span>
-                    </div>
-                    <h5 className="font-bold text-lg">Receta / Medicamentos</h5>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-3">
-                    {appointment.consultation.prescription.items.map((item: any, idx: number) => (
-                      <li key={idx} className="flex items-start gap-3 bg-gray-50 dark:bg-white/5 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                        <div className="flex-grow">
-                          <p className="font-bold text-text-main dark:text-white">{item.name}</p>
-                          <p className="text-sm text-text-sub dark:text-gray-400">{item.dose} • {item.frequency} • {item.duration}</p>
+                )}
+
+                {/* Vital Signs / Anthropometry */}
+                {hasVitalSigns && (
+                  <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="size-10 rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 flex items-center justify-center">
+                        <span className="material-symbols-outlined">vital_signs</span>
+                      </div>
+                      <h5 className="font-bold text-lg">Signos Vitales</h5>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {appointment.consultation.vital_signs.ta && (
+                        <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+                          <p className="text-[10px] uppercase font-bold text-text-sub mb-1">P. Arterial</p>
+                          <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.ta}</p>
+                          <p className="text-[8px] text-text-sub">mmHg</p>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Medical Rest */}
-              {appointment.consultation.medical_rest && (appointment.consultation.medical_rest.days || appointment.consultation.medical_rest.type) && appointment.consultation.medical_rest.visible !== false && (
-                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="size-10 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 flex items-center justify-center">
-                      <span className="material-symbols-outlined">bed</span>
-                    </div>
-                    <h5 className="font-bold text-lg">Plan de Reposo</h5>
-                  </div>
-                  <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-lg border border-amber-100 dark:border-amber-900/30">
-                    <p className="text-text-main dark:text-gray-200">
-                      <span className="font-bold block mb-1">{appointment.consultation.medical_rest.type}</span>
-                      {appointment.consultation.medical_rest.days ? `${appointment.consultation.medical_rest.days} días recomendados.` : "No se especificó duración."}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Vital Signs / Anthropometry */}
-              {appointment.consultation.vital_signs && (
-                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="size-10 rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 flex items-center justify-center">
-                      <span className="material-symbols-outlined">vital_signs</span>
-                    </div>
-                    <h5 className="font-bold text-lg">Signos Vitales</h5>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {appointment.consultation.vital_signs.ta && (
-                      <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
-                        <p className="text-[10px] uppercase font-bold text-text-sub mb-1">P. Arterial</p>
-                        <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.ta}</p>
-                        <p className="text-[8px] text-text-sub">mmHg</p>
-                      </div>
-                    )}
-                    {appointment.consultation.vital_signs.fc && (
-                      <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
-                        <p className="text-[10px] uppercase font-bold text-text-sub mb-1">Frecuencia</p>
-                        <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.fc}</p>
-                        <p className="text-[8px] text-text-sub">BPM</p>
-                      </div>
-                    )}
-                    {appointment.consultation.vital_signs.temp && (
-                      <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
-                        <p className="text-[10px] uppercase font-bold text-text-sub mb-1">Temp</p>
-                        <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.temp}</p>
-                        <p className="text-[8px] text-text-sub">°C</p>
-                      </div>
-                    )}
-                    {appointment.consultation.vital_signs.spo2 && (
-                      <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
-                        <p className="text-[10px] uppercase font-bold text-text-sub mb-1">SpO2</p>
-                        <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.spo2}%</p>
-                        <p className="text-[8px] text-text-sub">Saturación</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Exams Requested */}
-              {appointment.consultation.exams_requested?.items?.length > 0 && appointment.consultation.exams_requested?.visible !== false && (
-                <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="size-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center justify-center">
-                      <span className="material-symbols-outlined">lab_research</span>
-                    </div>
-                    <h5 className="font-bold text-lg">Exámenes Solicitados</h5>
-                  </div>
-                  <ul className="space-y-3">
-                    {appointment.consultation.exams_requested.items.map((exam: any, idx: number) => (
-                      <li key={idx} className="flex items-center gap-3 bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-900/30">
-                        <span className="material-symbols-outlined text-blue-500">biometry</span>
-                        <div className="flex-grow">
-                          <p className="font-bold text-text-main dark:text-white capitalize">{exam.name}</p>
-                          <p className="text-xs text-text-sub dark:text-gray-400">{exam.type}</p>
+                      )}
+                      {appointment.consultation.vital_signs.fc && (
+                        <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+                          <p className="text-[10px] uppercase font-bold text-text-sub mb-1">Frecuencia</p>
+                          <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.fc}</p>
+                          <p className="text-[8px] text-text-sub">BPM</p>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Patient Notes / Clinical Reason */}
-              <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm md:col-span-2">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="size-10 rounded-full bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400 flex items-center justify-center">
-                    <span className="material-symbols-outlined">notes</span>
-                  </div>
-                  <h5 className="font-bold text-lg">Resumen de la Consulta</h5>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-bold text-text-sub uppercase mb-1">Motivo</p>
-                    <p className="text-text-main dark:text-gray-200">{appointment.consultation.reason}</p>
-                  </div>
-                  {appointment.consultation.current_illness && (
-                    <div>
-                      <p className="text-xs font-bold text-text-sub uppercase mb-1">Evolución / Enfermedad Actual</p>
-                      <p className="text-text-main dark:text-gray-300 italic">{appointment.consultation.current_illness}</p>
+                      )}
+                      {appointment.consultation.vital_signs.temp && (
+                        <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+                          <p className="text-[10px] uppercase font-bold text-text-sub mb-1">Temp</p>
+                          <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.temp}</p>
+                          <p className="text-[8px] text-text-sub">°C</p>
+                        </div>
+                      )}
+                      {appointment.consultation.vital_signs.spo2 && (
+                        <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+                          <p className="text-[10px] uppercase font-bold text-text-sub mb-1">SpO2</p>
+                          <p className="text-base font-black text-text-main dark:text-white">{appointment.consultation.vital_signs.spo2}%</p>
+                          <p className="text-[8px] text-text-sub">Saturación</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {/* Exams Requested */}
+                {hasExams && (
+                  <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="size-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center justify-center">
+                        <span className="material-symbols-outlined">lab_research</span>
+                      </div>
+                      <h5 className="font-bold text-lg">Exámenes Solicitados</h5>
+                    </div>
+                    <ul className="space-y-3">
+                      {appointment.consultation.exams_requested.items.map((exam: any, idx: number) => (
+                        <li key={idx} className="flex items-center gap-3 bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                          <span className="material-symbols-outlined text-blue-500">biometry</span>
+                          <div className="flex-grow">
+                            <p className="font-bold text-text-main dark:text-white capitalize">{exam.name}</p>
+                            <p className="text-xs text-text-sub dark:text-gray-400">{exam.type}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </main>
     </div>
   );

@@ -67,12 +67,22 @@ export default function DoctorPatientDetails() {
 
             // 4. Fetch Unified History
             const [consultationsRes, evalsRes] = await Promise.all([
-                supabase.from('consultations').select('id, created_at, reason, diagnosis, doctor_id, appointment_id').eq('patient_id', id).order('created_at', { ascending: false }),
-                supabase.from('nutritional_evaluations').select('id, created_at, ai_summary, nutritionist_id, metrics').eq('patient_id', id).order('created_at', { ascending: false })
+                supabase.from('consultations')
+                    .select('*, appointments(visit_type)')
+                    .eq('patient_id', id)
+                    .order('created_at', { ascending: false }),
+                supabase.from('nutritional_evaluations')
+                    .select('*')
+                    .eq('patient_id', id)
+                    .order('created_at', { ascending: false })
             ]);
 
             const combinedHistory = [
-                ...(consultationsRes.data || []).map(c => ({ ...c, type: 'clinical' })),
+                ...(consultationsRes.data || []).map(c => ({
+                    ...c,
+                    type: 'clinical',
+                    visit_type: c.appointments?.visit_type
+                })),
                 ...(evalsRes.data || []).map(e => ({ ...e, type: 'nutrition' }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -406,12 +416,23 @@ function HistoryItem({ item, navigate }: any) {
     const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
     const formattedTime = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
+    const getIcon = () => {
+        if (!isClinical) return 'nutrition';
+        switch (item.visit_type) {
+            case 'first-time': return 'person_add';
+            case 'follow-up': return 'stethoscope';
+            case 'results': return 'analytics';
+            case 'emergency': return 'emergency';
+            default: return 'stethoscope';
+        }
+    };
+
     return (
         <div className="relative pl-12 group">
             {/* Timeline Circle */}
             <div className={`absolute left-0 top-0 size-10 rounded-full flex items-center justify-center z-10 border-4 border-surface-light dark:border-surface-dark ${isClinical ? 'bg-primary/20 text-primary' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'}`}>
                 <span className="material-symbols-outlined text-lg icon-filled">
-                    {isClinical ? 'stethoscope' : 'nutrition'}
+                    {getIcon()}
                 </span>
             </div>
 
@@ -427,12 +448,15 @@ function HistoryItem({ item, navigate }: any) {
 
                 <p className="text-xs text-slate-500 italic line-clamp-2 mb-4">
                     {isClinical ?
-                        (item.diagnosis ? "Diagnóstico: " + JSON.parse(item.diagnosis).map((d: any) => d.name).join(', ') : "Sin diagnóstico registrado.")
+                        (item.diagnosis ? "Diagnóstico: " + (item.diagnosis.startsWith('[') ? JSON.parse(item.diagnosis).map((d: any) => d.name).join(', ') : item.diagnosis) : "Sin diagnóstico registrado.")
                         : (item.ai_summary || "Evolución nutricional registrada.")}
                 </p>
 
                 <button
-                    onClick={() => isClinical ? navigate(`/consultation/${item.appointment_id}`) : navigate(`/nutrition/evaluate/${item.patient_id}/${item.id}`)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        isClinical ? navigate(`/consultation/${item.appointment_id}`) : navigate(`/nutrition/evaluate/${item.patient_id}/${item.id}`);
+                    }}
                     className="w-full py-2 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
                 >
                     Ver Detalles <span className="material-symbols-outlined text-sm">open_in_new</span>
