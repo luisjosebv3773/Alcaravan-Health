@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
+import { Logo } from './Logo';
 
 export default function ResetPassword() {
     const navigate = useNavigate();
@@ -61,8 +62,11 @@ export default function ResetPassword() {
             <div className="w-full max-w-md bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
                 <div className="p-8 lg:p-12">
                     <div className="mb-10">
-                        <h3 className="text-2xl font-bold mb-2">Nueva Contraseña</h3>
-                        <p className="text-text-sub dark:text-gray-400">Ingresa tu nueva contraseña para acceder a tu cuenta</p>
+                        <div className="flex justify-center mb-6">
+                            <Logo className="size-20" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2 text-center">Nueva Contraseña</h3>
+                        <p className="text-text-sub dark:text-gray-400 text-center">Ingresa tu nueva contraseña para acceder a tu cuenta</p>
                     </div>
 
                     {error && (

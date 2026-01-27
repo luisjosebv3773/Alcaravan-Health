@@ -13,6 +13,7 @@ import ProfessionalOnboarding from './components/ProfessionalOnboarding';
 import ProfessionalSidebar from './components/ProfessionalSidebar';
 import PatientDirectory from './components/PatientDirectory';
 import ProfessionalAppointmentHistory from './components/ProfessionalAppointmentHistory';
+import { Logo } from './components/Logo';
 
 
 import AIChatbot from './components/AIChatbot';
@@ -139,12 +140,8 @@ const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; on
     <header className="sticky top-0 z-50 w-full bg-surface-light dark:bg-surface-dark backdrop-blur-md border-b border-gray-100 dark:border-border-dark shadow-sm">
       <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to={getDashboardPath()} className="flex items-center gap-4">
-
-            <div className="size-8 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined !text-[32px]">health_and_safety</span>
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Alcaraván Health</h1>
+          <Link to={getDashboardPath()} className="flex items-center gap-2">
+            <Logo className="size-10" showText={true} />
           </Link>
           <span className="hidden sm:inline px-2 py-0.5 rounded-full bg-primary/10 text-primary-dark dark:text-primary text-[10px] font-bold uppercase">
             {roleLabels[role]}

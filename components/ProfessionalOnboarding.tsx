@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import AppDialog from './AppDialog';
+import { Logo } from './Logo';
 
 export default function ProfessionalOnboarding({ onOnboardingComplete }: { onOnboardingComplete?: () => void }) {
     const navigate = useNavigate();
@@ -257,7 +258,10 @@ export default function ProfessionalOnboarding({ onOnboardingComplete }: { onOnb
                 type="success"
             />
 
-            <header className="h-16 bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 flex items-center justify-end px-4 lg:px-8 shrink-0 z-10 sticky top-0">
+            <header className="h-16 bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 z-10 sticky top-0">
+                <div className="flex items-center gap-2">
+                    <Logo className="size-8" showText={true} />
+                </div>
                 <div className="flex items-center gap-4">
                     <div className="hidden sm:flex flex-col items-end">
                         <span className="text-xs font-bold text-slate-400 uppercase">Onboarding Status</span>

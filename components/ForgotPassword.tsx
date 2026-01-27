@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Link } from 'react-router-dom';
+import { Logo } from './Logo';
 
 export default function ForgotPassword() {
     const [loading, setLoading] = useState(false);
@@ -39,14 +40,17 @@ export default function ForgotPassword() {
             <div className="w-full max-w-md bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
                 <div className="p-8 lg:p-12">
                     <div className="mb-10">
-                        <h3 className="text-2xl font-bold mb-2">Recuperar Contraseña</h3>
-                        <p className="text-text-sub dark:text-gray-400">Ingresa tu correo para recibir un enlace de recuperación</p>
+                        <div className="flex justify-center mb-6">
+                            <Logo className="size-20" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2 text-center">Recuperar Contraseña</h3>
+                        <p className="text-text-sub dark:text-gray-400 text-center">Ingresa tu correo para recibir un enlace de recuperación</p>
                     </div>
 
                     {message && (
                         <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${message.type === 'success'
-                                ? 'bg-green-50 text-green-600 border-green-100'
-                                : 'bg-red-50 text-red-600 border-red-100'
+                            ? 'bg-green-50 text-green-600 border-green-100'
+                            : 'bg-red-50 text-red-600 border-red-100'
                             }`}>
                             {message.text}
                         </div>

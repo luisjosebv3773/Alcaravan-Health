@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserRole } from '../types';
 import { supabase } from '../services/supabase';
 import { Link, useNavigate } from 'react-router-dom';
+import { Logo } from './Logo';
 
 
 interface LoginProps {
@@ -90,8 +91,11 @@ export default function Login({ onLogin }: LoginProps) {
           </Link>
 
           <div className="mb-10">
-            <h3 className="text-2xl font-bold mb-2">Iniciar Sesión</h3>
-            <p className="text-text-sub dark:text-gray-400">Ingresa a tu cuenta</p>
+            <div className="flex justify-center mb-6">
+              <Logo className="size-20" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2 text-center">Iniciar Sesión</h3>
+            <p className="text-text-sub dark:text-gray-400 text-center">Ingresa a tu cuenta</p>
           </div>
 
           {error && (

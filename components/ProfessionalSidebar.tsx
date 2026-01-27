@@ -2,6 +2,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { UserRole } from '../types';
+import { Logo } from './Logo';
 
 interface ProfessionalSidebarProps {
     role: UserRole;
@@ -54,7 +55,10 @@ export default function ProfessionalSidebar({ role }: ProfessionalSidebarProps) 
                     ))}
                 </nav>
 
-                <div className="mt-auto pt-6">
+                <div className="mt-auto pt-6 flex flex-col gap-4">
+                    <div className="flex justify-center opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-help" title="Alcaraván Health Logo">
+                        <Logo className="size-12" />
+                    </div>
                     <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 border border-transparent dark:border-white/5">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Software Médico</p>
                         <p className="text-[10px] text-slate-400 text-center font-bold">Alcaraván Health v1.2</p>
