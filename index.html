@@ -17,14 +17,14 @@
                 extend: {
                     colors: {
                         "primary": "#13ec5b",
-                        "primary-dark": "#0ea33f",
                         "primary-hover": "#10d650",
                         "background-light": "#f6f8f6",
-                        "background-dark": "#102216",
+                        "background-dark": "#0d1a12",
                         "surface-light": "#ffffff",
-                        "surface-dark": "#1A2E22",
+                        "surface-dark": "#162a1e",
+                        "border-dark": "#253b2e",
                         "card-light": "#ffffff",
-                        "card-dark": "#1a2e22",
+                        "card-dark": "#162a1e",
                         "text-main": "#111813",
                         "text-sub": "#61896f",
                         "status-red": "#ef4444",
@@ -55,6 +55,33 @@
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+
+        /* Modern Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #253b2e;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #13ec5b;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #253b2e;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #13ec5b;
         }
     </style>
 

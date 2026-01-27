@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import PatientClinicalProfile from './PatientClinicalProfile';
 import Modal from './Modal';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DoctorPatientDetails() {
     const { id } = useParams();
@@ -88,16 +89,21 @@ export default function DoctorPatientDetails() {
 
             setHistory(combinedHistory);
 
-            // 4. Weight Trend (last 6 months/entries)
+            // 4. Weight Trend (last 6 entries)
             const weights = (evalsRes.data || [])
-                .filter(e => e.metrics?.weight)
-                .slice(0, 6)
-                .reverse()
                 .map(e => ({
                     date: new Date(e.created_at).toLocaleDateString('es-ES', { month: 'short' }),
-                    weight: e.metrics.weight
-                }));
+                    // Support both top-level weight/bmi and nested metrics
+                    weight: e.weight || (e.metrics && typeof e.metrics === 'object' ? e.metrics.weight : null) || 0,
+                    bmi: e.bmi || (e.metrics && typeof e.metrics === 'object' ? e.metrics.bmi : null) || 0
+                }))
+                .filter(w => w.weight > 0) // Only include entries with valid weight
+                .slice(0, 6)
+                .reverse();
+
             setWeightTrend(weights);
+            console.log('Evaluaciones encontradas:', (evalsRes.data || []).length);
+            console.log('Tendencia de peso procesada:', weights);
 
         } catch (error) {
             console.error('Error fetching patient data:', error);
@@ -130,16 +136,15 @@ export default function DoctorPatientDetails() {
     );
 
     const age = calculateAge(patient.birth_date);
-    const lastWeight = weightTrend[weightTrend.length - 1]?.weight || '---';
+    const lastWeight = healthProfile?.weight || weightTrend[weightTrend.length - 1]?.weight || '---';
     const prevWeight = weightTrend[weightTrend.length - 2]?.weight;
-    const weightDiff = prevWeight ? ((lastWeight - prevWeight) / prevWeight * 100).toFixed(1) : null;
+    const weightDiff = prevWeight ? ((Number(lastWeight) - prevWeight) / prevWeight * 100).toFixed(1) : null;
 
-    // Simple BMI calculation for visual analysis
-    const heightM = patient.height ? patient.height / 100 : 1.75; // fallback
-    const imc = lastWeight !== '---' ? Number((Number(lastWeight) / (heightM * heightM)).toFixed(1)) : 0;
+    // Use BMI from health profile as requested
+    const imc = healthProfile?.bmi || 0;
 
-    // Position of marker on BMI bar (18.5 to 30 range is 40% to 85% roughly)
-    const imcPosition = imc === 0 ? 0 : Math.min(Math.max((imc - 15) / 20 * 100, 0), 100);
+    // Position of marker on BMI bar (15 to 40 scale)
+    const imcPosition = imc === 0 ? 0 : Math.min(Math.max((imc - 15) / (40 - 15) * 100, 0), 100);
 
     return (
         <div className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark no-scrollbar">
@@ -174,20 +179,12 @@ export default function DoctorPatientDetails() {
                                 <VitalCard icon="air" label="Sat. Oxígeno" value={vitals.spo2} unit="%" />
                             </div>
 
-                            <div className="mt-6 flex flex-wrap gap-2">
-                                {healthProfile?.blood_type && (
-                                    <Tag color="blue" icon="bloodtype" label={`Grupo: ${healthProfile.blood_type}`} />
-                                )}
-                                {healthProfile?.allergies && (
-                                    <Tag color="red" icon="warning" label={`Alergias: ${healthProfile.allergies}`} />
-                                )}
-                                <Tag color="orange" icon="calendar_month" label={`${age} Años`} />
-                                <Tag color="blue" icon="home" label={patient.gender || 'No definido'} />
+                            <div className="mt-6 flex flex-wrap items-center gap-2">
                                 <button
                                     onClick={() => setShowFullProfile(true)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-all"
+                                    className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-all text-xs"
                                 >
-                                    <span className="material-symbols-outlined text-base">clinical_notes</span>
+                                    <span className="material-symbols-outlined text-lg">clinical_notes</span>
                                     Ver Expediente Completo
                                 </button>
                             </div>
@@ -258,20 +255,47 @@ export default function DoctorPatientDetails() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="h-32 flex items-end gap-1.5 pt-4">
-                                        {weightTrend.map((t, i) => {
-                                            const maxW = Math.max(...weightTrend.map(x => x.weight));
-                                            const minW = Math.min(...weightTrend.map(x => x.weight));
-                                            const range = (maxW - minW) || 10;
-                                            const height = 30 + ((t.weight - minW) / range) * 70;
-                                            return (
-                                                <div key={i} className="flex-1 bg-primary/20 rounded-t hover:bg-primary/40 transition-all relative group" style={{ height: `${height}%` }}>
-                                                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                                        {t.weight}kg
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                    <div className="h-40 w-full pt-4">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={weightTrend}>
+                                                <defs>
+                                                    <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#fcc131" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#fcc131" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                                                <XAxis
+                                                    dataKey="date"
+                                                    hide={true}
+                                                />
+                                                <YAxis
+                                                    hide={true}
+                                                    domain={['dataMin - 5', 'dataMax + 5']}
+                                                />
+                                                <Tooltip
+                                                    contentStyle={{
+                                                        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        color: '#fff',
+                                                        fontSize: '12px'
+                                                    }}
+                                                    itemStyle={{ color: '#fcc131' }}
+                                                    labelStyle={{ display: 'none' }}
+                                                    formatter={(value: any) => [`${value} kg`, 'Peso']}
+                                                />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="weight"
+                                                    stroke="#fcc131"
+                                                    strokeWidth={3}
+                                                    fillOpacity={1}
+                                                    fill="url(#colorWeight)"
+                                                    animationDuration={1500}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
                                     </div>
                                     <div className="flex justify-between mt-2 px-1 text-[10px] font-bold text-slate-400 uppercase">
                                         <span>{weightTrend[0]?.date}</span>
@@ -416,23 +440,67 @@ function HistoryItem({ item, navigate }: any) {
     const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
     const formattedTime = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-    const getIcon = () => {
-        if (!isClinical) return 'nutrition';
-        switch (item.visit_type) {
-            case 'first-time': return 'person_add';
-            case 'follow-up': return 'stethoscope';
-            case 'results': return 'analytics';
-            case 'emergency': return 'emergency';
-            default: return 'stethoscope';
+    const getVisitTypeStyles = (type: string, isClinical: boolean) => {
+        if (!isClinical) return {
+            icon: 'nutrition',
+            label: 'Nutrición',
+            bg: 'bg-amber-100 dark:bg-amber-900/30',
+            text: 'text-amber-600 dark:text-amber-400',
+            border: 'border-amber-200 dark:border-amber-900/50'
+        };
+
+        switch (type) {
+            case 'first-time':
+                return {
+                    icon: 'person_add',
+                    label: 'Primera Vez',
+                    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+                    text: 'text-emerald-600 dark:text-emerald-400',
+                    border: 'border-emerald-200 dark:border-emerald-900/50'
+                };
+            case 'follow-up':
+                return {
+                    icon: 'stethoscope',
+                    label: 'Control',
+                    bg: 'bg-blue-100 dark:bg-blue-900/30',
+                    text: 'text-blue-600 dark:text-blue-400',
+                    border: 'border-blue-200 dark:border-blue-900/50'
+                };
+            case 'results':
+                return {
+                    icon: 'analytics',
+                    label: 'Resultados',
+                    bg: 'bg-purple-100 dark:bg-purple-900/30',
+                    text: 'text-purple-600 dark:text-purple-400',
+                    border: 'border-purple-200 dark:border-purple-900/50'
+                };
+            case 'emergency':
+                return {
+                    icon: 'emergency',
+                    label: 'Urgencia',
+                    bg: 'bg-red-100 dark:bg-red-900/30',
+                    text: 'text-red-600 dark:text-red-400',
+                    border: 'border-red-200 dark:border-red-900/50'
+                };
+            default:
+                return {
+                    icon: 'medical_services',
+                    label: 'Consulta',
+                    bg: 'bg-slate-100 dark:bg-slate-800',
+                    text: 'text-slate-600 dark:text-slate-400',
+                    border: 'border-slate-200 dark:border-slate-700'
+                };
         }
     };
+
+    const styles = getVisitTypeStyles(item.visit_type, isClinical);
 
     return (
         <div className="relative pl-12 group">
             {/* Timeline Circle */}
-            <div className={`absolute left-0 top-0 size-10 rounded-full flex items-center justify-center z-10 border-4 border-surface-light dark:border-surface-dark ${isClinical ? 'bg-primary/20 text-primary' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'}`}>
+            <div className={`absolute left-0 top-0 size-10 rounded-full flex items-center justify-center z-10 border-4 border-surface-light dark:border-surface-dark ${styles.bg} ${styles.text}`}>
                 <span className="material-symbols-outlined text-lg icon-filled">
-                    {getIcon()}
+                    {styles.icon}
                 </span>
             </div>
 

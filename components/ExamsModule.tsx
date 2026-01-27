@@ -28,6 +28,7 @@ interface ExamsModuleProps {
     setRequestVisible: (v: boolean) => void;
     resultsVisible: boolean;
     setResultsVisible: (v: boolean) => void;
+    isReadOnly?: boolean;
 }
 
 // Configuration for Exam Types
@@ -74,7 +75,8 @@ export default function ExamsModule({
     requestVisible,
     setRequestVisible,
     resultsVisible,
-    setResultsVisible
+    setResultsVisible,
+    isReadOnly = false
 }: ExamsModuleProps) {
 
     // --- Request Logic ---
@@ -160,8 +162,9 @@ export default function ExamsModule({
                     <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                         <input
                             checked={requestVisible}
+                            disabled={isReadOnly}
                             onChange={(e) => setRequestVisible(e.target.checked)}
-                            className="peer absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 transition-all duration-300 checked:right-0 checked:border-blue-500"
+                            className="peer absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 transition-all duration-300 checked:right-0 checked:border-blue-500 disabled:cursor-not-allowed"
                             id="toggle-req-exams"
                             type="checkbox"
                         />
@@ -170,37 +173,39 @@ export default function ExamsModule({
                 </div>
 
                 <div className={`p-6 transition-all duration-300 ${!requestVisible ? 'opacity-50 pointer-events-none grayscale hidden' : 'block'}`}>
-                    <div className="flex flex-col md:flex-row gap-4 mb-4">
-                        <div className="flex-1">
-                            <select
-                                value={selectedExamToAdd}
-                                onChange={(e) => setSelectedExamToAdd(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-white"
+                    {!isReadOnly && (
+                        <div className="flex flex-col md:flex-row gap-4 mb-4">
+                            <div className="flex-1">
+                                <select
+                                    value={selectedExamToAdd}
+                                    onChange={(e) => setSelectedExamToAdd(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-white"
+                                >
+                                    <option value="">Seleccione un examen...</option>
+                                    {EXAM_TYPES.map(type => (
+                                        <option key={type.id} value={type.id}>{type.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex-[2]">
+                                <input
+                                    value={examNote}
+                                    onChange={(e) => setExamNote(e.target.value)}
+                                    placeholder="Nota / Indicación (ej. Ayuno 12h)"
+                                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-white"
+                                    type="text"
+                                />
+                            </div>
+                            <button
+                                onClick={handleAddRequest}
+                                disabled={!selectedExamToAdd}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                <option value="">Seleccione un examen...</option>
-                                {EXAM_TYPES.map(type => (
-                                    <option key={type.id} value={type.id}>{type.name}</option>
-                                ))}
-                            </select>
+                                <span className="material-symbols-outlined text-sm">add</span>
+                                Agregar
+                            </button>
                         </div>
-                        <div className="flex-[2]">
-                            <input
-                                value={examNote}
-                                onChange={(e) => setExamNote(e.target.value)}
-                                placeholder="Nota / Indicación (ej. Ayuno 12h)"
-                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/50 dark:text-white"
-                                type="text"
-                            />
-                        </div>
-                        <button
-                            onClick={handleAddRequest}
-                            disabled={!selectedExamToAdd}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                            <span className="material-symbols-outlined text-sm">add</span>
-                            Agregar
-                        </button>
-                    </div>
+                    )}
 
                     <div className="space-y-2">
                         {examsRequested.map((req, idx) => (
@@ -235,8 +240,9 @@ export default function ExamsModule({
                     <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                         <input
                             checked={resultsVisible}
+                            disabled={isReadOnly}
                             onChange={(e) => setResultsVisible(e.target.checked)}
-                            className="peer absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 transition-all duration-300 checked:right-0 checked:border-purple-500"
+                            className="peer absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 transition-all duration-300 checked:right-0 checked:border-purple-500 disabled:cursor-not-allowed"
                             id="toggle-res-exams"
                             type="checkbox"
                         />
@@ -248,21 +254,23 @@ export default function ExamsModule({
 
                     {!transcribingExamId ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {EXAM_TYPES.filter(t => EXAM_DEFINITIONS[t.id]).map(type => (
-                                    <button
-                                        key={type.id}
-                                        onClick={() => startTranscription(type.id)}
-                                        className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-left group"
-                                    >
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-purple-600 transition-colors">{type.name}</span>
-                                            <span className="material-symbols-outlined text-purple-300 group-hover:text-purple-500">edit_note</span>
-                                        </div>
-                                        <p className="text-xs text-slate-500">Click para transcribir</p>
-                                    </button>
-                                ))}
-                            </div>
+                            {!isReadOnly && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {EXAM_TYPES.filter(t => EXAM_DEFINITIONS[t.id]).map(type => (
+                                        <button
+                                            key={type.id}
+                                            onClick={() => startTranscription(type.id)}
+                                            className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-left group"
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-purple-600 transition-colors">{type.name}</span>
+                                                <span className="material-symbols-outlined text-purple-300 group-hover:text-purple-500">edit_note</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500">Click para transcribir</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
                             {/* Existing Results Summary Table */}
                             {examResults.length > 0 && (
@@ -288,15 +296,16 @@ export default function ExamsModule({
                                                                 {j === 0 && (
                                                                     <td rowSpan={Object.keys(res.values).length} className="px-4 py-2 font-medium border-r border-slate-100 dark:border-slate-700 align-top pt-3">
                                                                         {getExamName(res.examType)}
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                // Simple remove for now
-                                                                                const n = [...examResults];
-                                                                                n.splice(i, 1);
-                                                                                setExamResults(n);
-                                                                            }}
-                                                                            className="block mt-1 text-xs text-red-400 hover:text-red-500"
-                                                                        >Eliminar</button>
+                                                                        {!isReadOnly && (
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const n = [...examResults];
+                                                                                    n.splice(i, 1);
+                                                                                    setExamResults(n);
+                                                                                }}
+                                                                                className="block mt-1 text-xs text-red-400 hover:text-red-500"
+                                                                            >Eliminar</button>
+                                                                        )}
                                                                     </td>
                                                                 )}
                                                                 <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{def?.label || key}</td>

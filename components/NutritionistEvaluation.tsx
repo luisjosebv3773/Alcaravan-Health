@@ -130,6 +130,8 @@ export default function NutritionistEvaluation() {
       const evaluationData = {
         patient_id: id,
         nutritionist_id: user.id,
+        weight: Number(metrics.weight),
+        bmi: Number(advancedMetrics.bmi),
         metrics: {
           ...metrics,
           body_fat: advancedMetrics.bodyFat

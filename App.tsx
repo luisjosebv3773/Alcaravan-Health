@@ -18,6 +18,8 @@ import ProfessionalAppointmentHistory from './components/ProfessionalAppointment
 import AIChatbot from './components/AIChatbot';
 import Login from './components/Login';
 import Register from './components/Register';
+import ResetPassword from './components/ResetPassword';
+import ForgotPassword from './components/ForgotPassword';
 import Consultation from './components/Consultation';
 import UserProfile from './components/UserProfile';
 import BookAppointment from './components/BookAppointment';
@@ -30,11 +32,33 @@ import { onMessage } from 'firebase/messaging';
 const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; onLogout: () => void; needsOnboarding?: boolean }> = ({ role, userName, avatarUrl, onLogout, needsOnboarding }) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
+
   const roleLabels: Record<UserRole, string> = {
     [UserRole.PATIENT]: 'Paciente',
     [UserRole.DOCTOR]: 'Médico',
     [UserRole.NUTRITIONIST]: 'Nutricionista'
   };
+
+  const toggleTheme = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    }
+  }, []);
 
   useEffect(() => {
     let channel: any;
@@ -112,7 +136,7 @@ const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; on
   const location = useLocation();
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-card-light/80 dark:bg-card-dark/80 backdrop-blur-md border-b border-[#f0f4f2] dark:border-gray-800 shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-surface-light dark:bg-surface-dark backdrop-blur-md border-b border-gray-100 dark:border-border-dark shadow-sm">
       <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to={getDashboardPath()} className="flex items-center gap-4">
@@ -188,14 +212,25 @@ const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; on
               <p className="text-sm font-bold leading-none text-slate-900 dark:text-white">{userName || 'Usuario'}</p>
               <button onClick={onLogout} className="text-[10px] text-status-red font-bold hover:underline">Cerrar Sesión</button>
             </div>
-            <Link to="/profile">
-              <div
-                className="size-10 rounded-full bg-gray-200 overflow-hidden ring-2 ring-primary/20 bg-cover bg-center cursor-pointer hover:ring-primary transition-all flex items-center justify-center"
-                style={{ backgroundImage: avatarUrl ? `url('${avatarUrl}')` : 'none' }}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400 transition-colors"
+                title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
               >
-                {!avatarUrl && <span className="material-symbols-outlined text-gray-400">person</span>}
-              </div>
-            </Link>
+                <span className="material-symbols-outlined !text-[20px]">
+                  {isDarkMode ? 'light_mode' : 'dark_mode'}
+                </span>
+              </button>
+              <Link to="/profile">
+                <div
+                  className="size-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden ring-2 ring-primary/20 bg-cover bg-center cursor-pointer hover:ring-primary transition-all flex items-center justify-center relative group"
+                  style={{ backgroundImage: avatarUrl ? `url('${avatarUrl}')` : 'none' }}
+                >
+                  {!avatarUrl && <span className="material-symbols-outlined text-gray-400">person</span>}
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -348,7 +383,9 @@ function AppContent() {
     navigate('/login');
   };
 
-  if (!isLoggedIn && location.pathname !== '/login' && location.pathname !== '/register') {
+  const isPublicRoute = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
+
+  if (!isLoggedIn && !isPublicRoute) {
     return <Navigate to="/login" replace />;
   }
 
@@ -373,6 +410,8 @@ function AppContent() {
           <Routes>
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route path="/" element={
               role === UserRole.PATIENT ? <PatientDashboard userName={userName} /> :

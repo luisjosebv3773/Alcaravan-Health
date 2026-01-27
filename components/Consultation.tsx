@@ -358,6 +358,8 @@ export default function Consultation() {
         allergies: healthData.allergies
     };
 
+    const isReadOnly = data?.status === 'completed';
+
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased overflow-hidden h-[calc(100vh-64px)] flex transition-colors duration-200">
             <AppDialog
@@ -408,7 +410,11 @@ export default function Consultation() {
                                     <div>
                                         <div className="flex items-center gap-3">
                                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Entrada de Consulta</h2>
-                                            <span className="bg-primary/20 text-green-700 dark:text-green-400 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">En Curso</span>
+                                            {isReadOnly ? (
+                                                <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-slate-200 dark:border-slate-700">Solo Lectura</span>
+                                            ) : (
+                                                <span className="bg-primary/20 text-green-700 dark:text-green-400 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">En Curso</span>
+                                            )}
                                         </div>
                                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Registrando datos clínicos para el encuentro actual.</p>
                                     </div>
@@ -531,8 +537,9 @@ export default function Consultation() {
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Motivo de Consulta <span className="text-red-500">*</span></label>
                                         <input
                                             value={reason}
+                                            disabled={isReadOnly}
                                             onChange={(e) => setReason(e.target.value)}
-                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all dark:text-white placeholder:text-slate-400"
+                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all dark:text-white placeholder:text-slate-400 disabled:opacity-75 disabled:cursor-not-allowed"
                                             placeholder="Ej: Dolor de cabeza persistente y fiebre..."
                                             type="text"
                                         />
@@ -541,8 +548,9 @@ export default function Consultation() {
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Enfermedad Actual</label>
                                         <textarea
                                             value={illnessHistory}
+                                            disabled={isReadOnly}
                                             onChange={(e) => setIllnessHistory(e.target.value)}
-                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all dark:text-white placeholder:text-slate-400"
+                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all dark:text-white placeholder:text-slate-400 disabled:opacity-75 disabled:cursor-not-allowed"
                                             placeholder="Descripción detallada de la condición actual..."
                                             rows={4}
                                         ></textarea>
@@ -561,8 +569,9 @@ export default function Consultation() {
                                         <div className="relative">
                                             <input
                                                 value={vitals.ta}
+                                                disabled={isReadOnly}
                                                 onChange={(e) => setVitals({ ...vitals, ta: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white"
+                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white disabled:opacity-75"
                                                 placeholder="120/80"
                                                 type="text"
                                             />
@@ -574,8 +583,9 @@ export default function Consultation() {
                                         <div className="relative">
                                             <input
                                                 value={vitals.fc}
+                                                disabled={isReadOnly}
                                                 onChange={(e) => setVitals({ ...vitals, fc: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white"
+                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white disabled:opacity-75"
                                                 placeholder="72"
                                                 type="number"
                                             />
@@ -587,8 +597,9 @@ export default function Consultation() {
                                         <div className="relative">
                                             <input
                                                 value={vitals.temp}
+                                                disabled={isReadOnly}
                                                 onChange={(e) => setVitals({ ...vitals, temp: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white"
+                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white disabled:opacity-75"
                                                 placeholder="36.5"
                                                 type="number"
                                             />
@@ -600,8 +611,9 @@ export default function Consultation() {
                                         <div className="relative">
                                             <input
                                                 value={vitals.spo2}
+                                                disabled={isReadOnly}
                                                 onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white"
+                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none dark:text-white disabled:opacity-75"
                                                 placeholder="98"
                                                 type="number"
                                             />
@@ -631,8 +643,9 @@ export default function Consultation() {
                                             </span>
                                             <input
                                                 value={diagnosisSearch}
+                                                disabled={isReadOnly}
                                                 onChange={(e) => setDiagnosisSearch(e.target.value)}
-                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all dark:text-white"
+                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all dark:text-white disabled:opacity-75"
                                                 placeholder="Buscar por código o nombre..."
                                                 type="text"
                                             />
@@ -663,7 +676,7 @@ export default function Consultation() {
                                             {selectedDiagnoses.map((diag) => (
                                                 <span key={diag.code} className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 animate-in zoom-in-95">
                                                     <span className="font-bold text-primary">{diag.code}</span> - {diag.name}
-                                                    <button onClick={() => removeDiagnosis(diag.code)} className="hover:text-red-500 ml-1 flex items-center"><span className="material-symbols-outlined text-xs">close</span></button>
+                                                    {!isReadOnly && <button onClick={() => removeDiagnosis(diag.code)} className="hover:text-red-500 ml-1 flex items-center"><span className="material-symbols-outlined text-xs">close</span></button>}
                                                 </span>
                                             ))}
                                             {selectedDiagnoses.length === 0 && <span className="text-xs text-slate-400 italic">Sin diagnósticos seleccionados</span>}
@@ -702,8 +715,9 @@ export default function Consultation() {
                                     </label>
                                     <textarea
                                         value={internalNotes}
+                                        disabled={isReadOnly}
                                         onChange={(e) => setInternalNotes(e.target.value)}
-                                        className="w-full bg-amber-50 dark:bg-yellow-900/10 border border-amber-200 dark:border-amber-900/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none transition-all dark:text-white placeholder:text-slate-400"
+                                        className="w-full bg-amber-50 dark:bg-yellow-900/10 border border-amber-200 dark:border-amber-900/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 outline-none transition-all dark:text-white placeholder:text-slate-400 disabled:opacity-75"
                                         placeholder="Observaciones internas no visibles para el paciente..."
                                         rows={5}
                                     ></textarea>
@@ -726,8 +740,9 @@ export default function Consultation() {
                                     <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                                         <input
                                             checked={showPrescription}
+                                            disabled={isReadOnly}
                                             onChange={(e) => setShowPrescription(e.target.checked)}
-                                            className="peer absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 transition-all duration-300 checked:right-0 checked:border-primary"
+                                            className="peer absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 transition-all duration-300 checked:right-0 checked:border-primary disabled:cursor-not-allowed"
                                             id="toggle-rx"
                                             name="toggle"
                                             type="checkbox"
@@ -755,7 +770,7 @@ export default function Consultation() {
                                                         <td className="px-4 py-3">{item.frequency}</td>
                                                         <td className="px-4 py-3">{item.duration}</td>
                                                         <td className="px-4 py-3 text-center">
-                                                            <button onClick={() => removePrescriptionItem(index)} className="text-slate-400 hover:text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                                            {!isReadOnly && <button onClick={() => removePrescriptionItem(index)} className="text-slate-400 hover:text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -764,51 +779,53 @@ export default function Consultation() {
                                                         <td colSpan={5} className="px-4 py-3 text-center text-slate-400 italic">No hay medicamentos agregados</td>
                                                     </tr>
                                                 )}
-                                                <tr className="bg-slate-50/50 dark:bg-slate-800/20">
-                                                    <td className="px-4 py-2">
-                                                        <input
-                                                            value={rxInput.name}
-                                                            onChange={(e) => setRxInput({ ...rxInput, name: e.target.value })}
-                                                            onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
-                                                            className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
-                                                            placeholder="ej. Paracetamol 500mg" // Hint example
-                                                            type="text"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        <input
-                                                            value={rxInput.dose}
-                                                            onChange={(e) => setRxInput({ ...rxInput, dose: e.target.value })}
-                                                            onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
-                                                            className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
-                                                            placeholder="ej. 1 tableta" // Hint example
-                                                            type="text"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        <input
-                                                            value={rxInput.frequency}
-                                                            onChange={(e) => setRxInput({ ...rxInput, frequency: e.target.value })}
-                                                            onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
-                                                            className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
-                                                            placeholder="ej. Cada 8 horas" // Hint example
-                                                            type="text"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        <input
-                                                            value={rxInput.duration}
-                                                            onChange={(e) => setRxInput({ ...rxInput, duration: e.target.value })}
-                                                            onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
-                                                            className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
-                                                            placeholder="ej. 3 días" // Hint example
-                                                            type="text"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-2 text-center">
-                                                        <button onClick={addPrescriptionItem} disabled={!rxInput.name.trim()} className="text-primary hover:text-green-600 disabled:opacity-50"><span className="material-symbols-outlined">add_circle</span></button>
-                                                    </td>
-                                                </tr>
+                                                {!isReadOnly && (
+                                                    <tr className="bg-slate-50/50 dark:bg-slate-800/20">
+                                                        <td className="px-4 py-2">
+                                                            <input
+                                                                value={rxInput.name}
+                                                                onChange={(e) => setRxInput({ ...rxInput, name: e.target.value })}
+                                                                onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
+                                                                className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
+                                                                placeholder="ej. Paracetamol 500mg"
+                                                                type="text"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            <input
+                                                                value={rxInput.dose}
+                                                                onChange={(e) => setRxInput({ ...rxInput, dose: e.target.value })}
+                                                                onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
+                                                                className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
+                                                                placeholder="ej. 1 tableta"
+                                                                type="text"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            <input
+                                                                value={rxInput.frequency}
+                                                                onChange={(e) => setRxInput({ ...rxInput, frequency: e.target.value })}
+                                                                onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
+                                                                className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
+                                                                placeholder="ej. Cada 8 horas"
+                                                                type="text"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            <input
+                                                                value={rxInput.duration}
+                                                                onChange={(e) => setRxInput({ ...rxInput, duration: e.target.value })}
+                                                                onKeyPress={(e) => e.key === 'Enter' && addPrescriptionItem()}
+                                                                className="w-full bg-transparent border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 text-sm dark:text-white"
+                                                                placeholder="ej. 3 días"
+                                                                type="text"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <button onClick={addPrescriptionItem} disabled={!rxInput.name.trim()} className="text-primary hover:text-green-600 disabled:opacity-50"><span className="material-symbols-outlined">add_circle</span></button>
+                                                        </td>
+                                                    </tr>
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>

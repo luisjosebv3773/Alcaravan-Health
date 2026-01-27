@@ -122,6 +122,11 @@ export default function Login({ onLogin }: LoginProps) {
                 className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl p-4 font-medium focus:ring-2 focus:ring-primary outline-none"
                 placeholder="••••••••"
               />
+              <div className="mt-2 text-right">
+                <Link to="/forgot-password" title="Recuperar contraseña" className="text-xs font-bold text-text-sub hover:text-primary transition-colors">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
             </div>
 
             <button

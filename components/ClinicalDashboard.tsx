@@ -284,7 +284,7 @@ export default function ClinicalDashboard() {
 
       {showLinkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-card-dark rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-100 dark:border-gray-700">
+          <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-100 dark:border-border-dark">
             <h3 className="text-lg font-bold mb-2">Aprobar Cita Virtual</h3>
             <p className="text-sm text-gray-500 mb-4">Ingresa el enlace de Google Meet para la cita de {approvingAppt?.patient?.full_name}.</p>
 
@@ -343,8 +343,8 @@ export default function ClinicalDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:h-[880px]">
 
         {/* AGENDA VISUAL */}
-        <div className="xl:col-span-8 bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full">
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="xl:col-span-8 bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm flex flex-col h-full">
+          <div className="p-4 border-b border-slate-100 dark:border-border-dark flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-4">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <span className="material-symbols-outlined text-slate-400">calendar_view_day</span> Agenda
@@ -376,15 +376,15 @@ export default function ClinicalDashboard() {
             </div>
 
             <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex text-sm font-medium">
-              <button className="px-4 py-1.5 bg-white dark:bg-card-dark shadow-sm rounded-md text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700">Citas</button>
+              <button className="px-4 py-1.5 bg-white dark:bg-surface-dark shadow-sm rounded-md text-slate-900 dark:text-white border border-slate-200 dark:border-border-dark">Citas</button>
               <button className="px-4 py-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white">Disponibilidad</button>
             </div>
           </div>
 
-          <div className="flex-1 relative p-0 bg-slate-50/50 dark:bg-card-dark/50">
+          <div className="flex-1 relative p-0 bg-slate-50/50 dark:bg-black/10">
             <div className="grid grid-cols-[80px_1fr] h-full min-w-[600px]">
               {/* Time Column */}
-              <div className="flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark text-xs font-medium text-slate-400">
+              <div className="flex flex-col border-r border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark text-xs font-medium text-slate-400">
                 {timeLabels.map((time, i) => (
                   <div key={i} className="flex items-start justify-center pt-2 border-b border-white dark:border-transparent bg-background-light/30 dark:bg-black/10" style={{ height: i === timeLabels.length - 1 ? 'auto' : `${SLOT_HEIGHT}px` }}>
                     {time}
@@ -393,12 +393,12 @@ export default function ClinicalDashboard() {
               </div>
 
               {/* Grid Column */}
-              <div className="relative bg-white dark:bg-card-dark">
+              <div className="relative bg-white dark:bg-surface-dark">
                 {/* Background Lines */}
                 <div className="absolute inset-0 flex flex-col pointer-events-none">
                   {timeLabels.slice(0, -1).map((_, i) => (
                     <div key={i} className="" style={{ height: `${SLOT_HEIGHT}px`, borderBottom: '1px dashed var(--tw-border-opacity, #e2e8f0)' }}>
-                      <div className="w-full h-full border-b border-slate-100 dark:border-slate-800 border-dashed"></div>
+                      <div className="w-full h-full border-b border-slate-100 dark:border-border-dark border-dashed"></div>
                     </div>
                   ))}
                 </div>
@@ -468,7 +468,7 @@ export default function ClinicalDashboard() {
 // ... Keep other components same ... 
 function StatCard({ icon, color, label, value, trend, alert }: any) {
   return (
-    <div className="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-shadow">
+    <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-shadow">
       <div className={`absolute -right-4 -top-4 p-4 opacity-5 group-hover:opacity-10 transition-opacity rotate-12`}>
         <span className="material-symbols-outlined text-8xl">{icon}</span>
       </div>
@@ -490,8 +490,8 @@ function StatCard({ icon, color, label, value, trend, alert }: any) {
 function PendingRequests({ requests, loading, onApprove, onReject }: any) {
   const navigate = useNavigate();
   return (
-    <div className="bg-card-light dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-1 flex flex-col min-h-0">
-      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+    <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm flex-1 flex flex-col min-h-0">
+      <div className="p-4 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50/50 dark:bg-black/20">
         <h3 className="font-bold text-sm flex items-center gap-2">
           <span className={`size-2 bg-orange-500 rounded-full ${requests.length > 0 ? 'animate-pulse' : ''}`}></span>
           Solicitudes ({requests.length})

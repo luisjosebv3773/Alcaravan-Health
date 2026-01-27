@@ -34,7 +34,7 @@ export default function ProfessionalSidebar({ role }: ProfessionalSidebarProps) 
     ];
 
     return (
-        <aside className="w-64 bg-card-light dark:bg-card-dark border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 h-[calc(100vh-73px)] sticky top-[73px]">
+        <aside className="w-64 bg-surface-light dark:bg-surface-dark border-r border-slate-100 dark:border-border-dark flex flex-col shrink-0 h-[calc(100vh-73px)] sticky top-[73px]">
             <div className="p-6 flex-1 flex flex-col min-h-0">
                 <nav className="flex flex-col gap-3 flex-1">
                     {menuItems.map((item) => (
@@ -44,7 +44,7 @@ export default function ProfessionalSidebar({ role }: ProfessionalSidebarProps) 
                             className={({ isActive }) =>
                                 `flex items-center gap-3 px-4 py-4 rounded-xl transition-all font-bold text-sm ${isActive
                                     ? 'bg-primary text-slate-900 shadow-md shadow-primary/20'
-                                    : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                                    : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                                 }`
                             }
                         >
@@ -55,7 +55,7 @@ export default function ProfessionalSidebar({ role }: ProfessionalSidebarProps) 
                 </nav>
 
                 <div className="mt-auto pt-6">
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+                    <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 border border-transparent dark:border-white/5">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 text-center">Software Médico</p>
                         <p className="text-[10px] text-slate-400 text-center font-bold">Alcaraván Health v1.2</p>
                     </div>

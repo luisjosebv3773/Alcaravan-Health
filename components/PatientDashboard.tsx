@@ -128,7 +128,7 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
           >
             <span className="material-symbols-outlined !text-[20px]">medical_services</span> Perfil Clínico
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-card-dark border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             <span className="material-symbols-outlined !text-[20px]">download</span> Reporte
           </button>
         </div>
@@ -163,7 +163,7 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
             />
           </div>
 
-          <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex flex-col min-h-[400px]">
+          <div className="bg-card-light dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-border-dark p-6 flex flex-col min-h-[400px]">
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
               <div>
                 <h3 className="text-xl font-bold">Análisis de Composición Corporal</h3>
@@ -254,7 +254,7 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
 
 function MetricCard({ icon, label, value, status, color, subtext }: any) {
   return (
-    <div className="bg-card-light dark:bg-card-dark rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow group">
+    <div className="bg-card-light dark:bg-surface-dark rounded-xl p-6 shadow-sm border border-gray-100 dark:border-border-dark hover:shadow-md transition-shadow group">
       <div className="flex justify-between items-start mb-4">
         <div className={`p-2 bg-primary/10 rounded-lg text-primary`}>
           <span className="material-symbols-outlined">{icon}</span>
@@ -288,7 +288,7 @@ function AppointmentCard({ appointments, loading }: { appointments: Appointment[
   const navigate = useNavigate();
   if (loading) {
     return (
-      <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex items-center justify-center min-h-[200px]">
+      <div className="bg-card-light dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-border-dark p-6 flex items-center justify-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -298,7 +298,7 @@ function AppointmentCard({ appointments, loading }: { appointments: Appointment[
   const nextAppointments = appointments.slice(1);
 
   return (
-    <div className="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6">
+    <div className="bg-card-light dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-border-dark p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-bold">Próximas Citas</h3>
         <Link className="text-sm font-bold text-primary hover:underline" to="/appointment-history">Ver todas</Link>
@@ -367,7 +367,7 @@ function AppointmentCard({ appointments, loading }: { appointments: Appointment[
         </div>
       )}
 
-      <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+      <div className="mt-6 pt-6 border-t border-gray-100 dark:border-border-dark">
         <Link to="/request-appointment" className="w-full py-3 bg-primary text-black font-bold rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
           <span className="material-symbols-outlined">calendar_add_on</span> Reservar Nueva Cita
         </Link>
@@ -379,7 +379,7 @@ function AppointmentCard({ appointments, loading }: { appointments: Appointment[
 function WellnessGoals({ weight }: { weight?: number }) {
   const waterGoal = weight ? Math.round(weight * 35 / 250) : 10;
   return (
-    <div className="bg-background-light dark:bg-background-dark border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 flex flex-col gap-4">
+    <div className="bg-background-light dark:bg-background-dark border border-dashed border-gray-300 dark:border-border-dark rounded-xl p-6 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-2">
         <span className="material-symbols-outlined text-primary">task_alt</span>
         <h3 className="text-lg font-bold">Metas Diarias</h3>
@@ -405,7 +405,7 @@ function WellnessGoals({ weight }: { weight?: number }) {
 
 function EducationTip() {
   return (
-    <div className="bg-gradient-to-br from-[#102216] to-[#1a3826] rounded-xl p-6 text-white relative overflow-hidden group">
+    <div className="bg-gradient-to-br from-background-dark to-surface-dark rounded-xl p-6 text-white relative overflow-hidden group border border-border-dark">
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
         <span className="material-symbols-outlined !text-[120px]">local_library</span>
       </div>
@@ -421,7 +421,7 @@ function EducationTip() {
 
 function TrendCard({ label, value, trend, color }: any) {
   return (
-    <div className="bg-card-light dark:bg-card-dark p-4 rounded-lg border border-gray-100 dark:border-gray-800">
+    <div className="bg-card-light dark:bg-surface-dark p-4 rounded-lg border border-gray-100 dark:border-border-dark">
       <p className="text-xs text-text-sub font-medium uppercase mb-2">{label}</p>
       <div className="flex items-end justify-between">
         <span className="text-xl font-bold">{value}</span>

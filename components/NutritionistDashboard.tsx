@@ -104,7 +104,7 @@ export default function NutritionistDashboard() {
                 <div className="flex-1 overflow-y-auto p-8 pb-32">
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+                        <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-border-dark shadow-sm flex flex-col justify-between">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Resumen de Riesgo Metabólico</h3>
                                 <span className="material-symbols-outlined text-gray-400">cardiology</span>
@@ -120,7 +120,7 @@ export default function NutritionistDashboard() {
                             </div>
                         </div>
 
-                        <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                        <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-border-dark shadow-sm relative overflow-hidden">
                             <div className="absolute right-0 top-0 p-8 opacity-5 dark:opacity-10 pointer-events-none">
                                 <span className="material-symbols-outlined text-9xl">monitor_weight</span>
                             </div>
@@ -145,7 +145,7 @@ export default function NutritionistDashboard() {
                             </div>
                         </div>
 
-                        <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-between">
+                        <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-border-dark shadow-sm flex items-center justify-between">
                             <div className="flex flex-col h-full justify-between py-1">
                                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Logro de Objetivos</h3>
                                 <div>
@@ -168,7 +168,7 @@ export default function NutritionistDashboard() {
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                         <div className="xl:col-span-8 flex flex-col gap-8">
                             {/* BMI Distribution */}
-                            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
+                            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-border-dark shadow-sm">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                         <span className="material-symbols-outlined text-primary">bar_chart</span>
@@ -191,8 +191,8 @@ export default function NutritionistDashboard() {
                             </div>
 
                             {/* Active Monitoring Table */}
-                            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-200 dark:border-border-dark shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-gray-100 dark:border-border-dark flex justify-between items-center">
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">Monitoreo Activo</h3>
                                     <div className="relative">
                                         <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -254,7 +254,7 @@ export default function NutritionistDashboard() {
                                     </table>
                                 </div>
                                 {/* Pagination Controls */}
-                                <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                <div className="p-4 border-t border-gray-100 dark:border-border-dark flex items-center justify-between">
                                     <span className="text-xs text-gray-500">
                                         Mostrando {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalPatients)} a {Math.min(currentPage * PAGE_SIZE, totalPatients)} de {totalPatients}
                                     </span>
@@ -293,14 +293,14 @@ export default function NutritionistDashboard() {
 
                         {/* Today's Agenda */}
                         <div className="xl:col-span-4 flex flex-col h-full">
-                            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm h-full flex flex-col">
+                            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 border border-gray-200 dark:border-border-dark shadow-sm h-full flex flex-col">
                                 <div className="flex items-center justify-between mb-8">
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">Agenda de Hoy</h3>
                                     <button className="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500">
                                         <span className="material-symbols-outlined">calendar_month</span>
                                     </button>
                                 </div>
-                                <div className="relative pl-6 border-l-2 border-gray-100 dark:border-gray-800 space-y-10 flex-1">
+                                <div className="relative pl-6 border-l-2 border-gray-100 dark:border-border-dark space-y-10 flex-1">
                                     <AgendaItem
                                         time="09:00 AM"
                                         name="Juan Pérez"
@@ -329,7 +329,7 @@ export default function NutritionistDashboard() {
                                         <span className="absolute -left-[29px] top-3 size-3 rounded-full bg-gray-200 dark:bg-gray-700"></span>
                                         <div className="flex items-center gap-3 opacity-50">
                                             <span className="text-xs font-mono text-gray-400">03:00 PM</span>
-                                            <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+                                            <div className="h-px bg-gray-200 dark:bg-border-dark flex-1"></div>
                                             <span className="text-xs uppercase font-bold text-gray-400">Descanso Equipo</span>
                                         </div>
                                     </div>

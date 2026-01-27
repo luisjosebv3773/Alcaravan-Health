@@ -108,9 +108,9 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
     ] : [];
 
     return (
-        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-hidden rounded-2xl border border-slate-200 dark:border-border-dark">
             {/* Header */}
-            <div className="p-6 bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800">
+            <div className="p-6 bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-border-dark">
                 <div className="flex justify-between items-start mb-6">
                     <div className="flex items-center gap-4">
                         <div className="size-16 rounded-2xl bg-cover bg-center ring-2 ring-primary/20"
@@ -119,9 +119,6 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
                             <h2 className="text-xl font-black text-slate-900 dark:text-white">{patient.full_name}</h2>
                             <div className="flex gap-2 mt-1">
                                 <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">ID: {patient.cedula || '---'}</span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${patient.gender === 'Masculino' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'}`}>
-                                    {patient.gender || '---'}
-                                </span>
                             </div>
                         </div>
                     </div>
@@ -159,7 +156,7 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
                 {activeTab === 'overview' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Metrics Area */}
-                        <div className="bg-slate-50 dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="bg-slate-50 dark:bg-black/20 p-6 rounded-2xl border border-slate-100 dark:border-border-dark">
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Estado de Salud</h3>
                             <div className="h-64 w-full">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -218,7 +215,7 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
                                 <span className="material-symbols-outlined text-primary">medical_information</span>
                                 Antecedentes Médicos
                             </h3>
-                            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-black/20 p-4 rounded-xl border border-slate-100 dark:border-border-dark">
                                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                                     {healthProfile?.medical_history || 'No se han registrado antecedentes médicos crónicos o cirugías previas.'}
                                 </p>
@@ -230,7 +227,7 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
                                 <span className="material-symbols-outlined text-primary">family_history</span>
                                 Antecedentes Familiares
                             </h3>
-                            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-black/20 p-4 rounded-xl border border-slate-100 dark:border-border-dark">
                                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                                     {healthProfile?.family_history || 'Sin antecedentes familiares de relevancia registrados.'}
                                 </p>
@@ -242,7 +239,7 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
                                 <span className="material-symbols-outlined text-primary">pill</span>
                                 Medicamentos Actuales
                             </h3>
-                            <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-black/20 p-4 rounded-xl border border-slate-100 dark:border-border-dark">
                                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                                     {healthProfile?.medications || 'No hay tratamientos farmacológicos activos reportados.'}
                                 </p>
@@ -253,7 +250,7 @@ export default function PatientClinicalProfile({ patientId, onClose }: PatientCl
 
                 {activeTab === 'history' && (
                     <div className="relative pl-6 space-y-8">
-                        <div className="absolute left-[31px] top-4 bottom-4 w-0.5 bg-slate-100 dark:bg-slate-800"></div>
+                        <div className="absolute left-[31px] top-4 bottom-4 w-0.5 bg-slate-100 dark:bg-border-dark"></div>
                         {history.map((item, idx) => (
                             <TimelineItem
                                 key={idx}
@@ -283,8 +280,8 @@ function MetricItem({ icon, label, value, color = 'primary' }: any) {
         blue: 'text-blue-500'
     };
     return (
-        <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
-            <div className={`p-2 rounded-lg bg-white dark:bg-slate-800 shadow-sm ${iconColors[color]}`}>
+        <div className="bg-slate-50 dark:bg-black/20 p-4 rounded-xl border border-slate-100 dark:border-border-dark flex items-center gap-4">
+            <div className={`p-2 rounded-lg bg-white dark:bg-surface-dark shadow-sm ${iconColors[color]}`}>
                 <span className="material-symbols-outlined text-xl">{icon}</span>
             </div>
             <div>
@@ -300,29 +297,75 @@ function TimelineItem({ item }: any) {
     const date = new Date(item.created_at);
     const formattedDate = date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    const getIcon = () => {
-        if (!isClinical) return 'nutrition';
-        switch (item.visit_type) {
-            case 'first-time': return 'person_add';
-            case 'follow-up': return 'stethoscope';
-            case 'results': return 'analytics';
-            case 'emergency': return 'emergency';
-            default: return 'stethoscope';
+    const getVisitTypeStyles = (type: string, isClinical: boolean) => {
+        if (!isClinical) return {
+            icon: 'nutrition',
+            label: 'Nutrición',
+            bg: 'bg-amber-100 dark:bg-amber-900/30',
+            text: 'text-amber-600 dark:text-amber-400',
+            border: 'border-amber-200 dark:border-amber-900/50'
+        };
+
+        switch (type) {
+            case 'first-time':
+                return {
+                    icon: 'person_add',
+                    label: 'Primera Vez',
+                    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+                    text: 'text-emerald-600 dark:text-emerald-400',
+                    border: 'border-emerald-200 dark:border-emerald-900/50'
+                };
+            case 'follow-up':
+                return {
+                    icon: 'stethoscope',
+                    label: 'Control',
+                    bg: 'bg-blue-100 dark:bg-blue-900/30',
+                    text: 'text-blue-600 dark:text-blue-400',
+                    border: 'border-blue-200 dark:border-blue-900/50'
+                };
+            case 'results':
+                return {
+                    icon: 'analytics',
+                    label: 'Resultados',
+                    bg: 'bg-purple-100 dark:bg-purple-900/30',
+                    text: 'text-purple-600 dark:text-purple-400',
+                    border: 'border-purple-200 dark:border-purple-900/50'
+                };
+            case 'emergency':
+                return {
+                    icon: 'emergency',
+                    label: 'Urgencia',
+                    bg: 'bg-red-100 dark:bg-red-900/30',
+                    text: 'text-red-600 dark:text-red-400',
+                    border: 'border-red-200 dark:border-red-900/50'
+                };
+            default:
+                return {
+                    icon: 'medical_services',
+                    label: 'Consulta',
+                    bg: 'bg-slate-100 dark:bg-slate-800',
+                    text: 'text-slate-600 dark:text-slate-400',
+                    border: 'border-slate-200 dark:border-slate-700'
+                };
         }
     };
 
+    const styles = getVisitTypeStyles(item.visit_type, isClinical);
+
     return (
         <div className="relative pl-12">
-            <div className={`absolute left-0 top-1 size-10 rounded-full flex items-center justify-center z-10 border-4 border-surface-light dark:border-surface-dark ${isClinical ? 'bg-primary/20 text-primary' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'}`}>
+            <div className={`absolute left-0 top-1 size-10 rounded-full flex items-center justify-center z-10 border-4 border-surface-light dark:border-surface-dark ${styles.bg} ${styles.text}`}>
                 <span className="material-symbols-outlined text-lg">
-                    {getIcon()}
+                    {styles.icon}
                 </span>
             </div>
             <div className="bg-white dark:bg-slate-800/60 p-5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                        {isClinical ? (item.reason || 'Consulta Médica') : 'Evaluación Nutricional'}
-                    </h4>
+                    <div className="flex items-center gap-3">
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                            {isClinical ? (item.reason || 'Consulta Médica') : 'Evaluación Nutricional'}
+                        </h4>
+                    </div>
                     <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-full">{formattedDate}</span>
                 </div>
 
