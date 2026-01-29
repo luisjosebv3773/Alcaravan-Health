@@ -54,6 +54,7 @@ export default function Login({ onLogin }: LoginProps) {
           let appRole: UserRole;
           switch (profile.role) {
             case 'doctor': appRole = UserRole.DOCTOR; break;
+            case 'admin': appRole = UserRole.ADMIN; break;
             case 'nutri':
             case 'nutritionist': appRole = UserRole.NUTRITIONIST; break;
             case 'paciente':
@@ -91,8 +92,8 @@ export default function Login({ onLogin }: LoginProps) {
           </Link>
 
           <div className="mb-10">
-            <div className="flex justify-center mb-6">
-              <Logo className="size-20" />
+            <div className="flex justify-center mb-8">
+              <Logo className="w-64 h-auto" />
             </div>
             <h3 className="text-2xl font-bold mb-2 text-center">Iniciar Sesión</h3>
             <p className="text-text-sub dark:text-gray-400 text-center">Ingresa a tu cuenta</p>

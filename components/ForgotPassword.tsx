@@ -40,8 +40,8 @@ export default function ForgotPassword() {
             <div className="w-full max-w-md bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
                 <div className="p-8 lg:p-12">
                     <div className="mb-10">
-                        <div className="flex justify-center mb-6">
-                            <Logo className="size-20" />
+                        <div className="flex justify-center mb-8">
+                            <Logo className="w-80 h-auto" />
                         </div>
                         <h3 className="text-2xl font-bold mb-2 text-center">Recuperar Contraseña</h3>
                         <p className="text-text-sub dark:text-gray-400 text-center">Ingresa tu correo para recibir un enlace de recuperación</p>

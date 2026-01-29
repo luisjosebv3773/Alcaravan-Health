@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, AreaChart, Area, YAxis } from 'recharts';
 import { supabase } from '../services/supabase';
 import PatientClinicalProfile from './PatientClinicalProfile';
 import Modal from './Modal';
@@ -38,6 +38,13 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
   const [profile, setProfile] = useState<any>(null);
   const [loadingHealth, setLoadingHealth] = useState(true);
   const [showClinicalProfile, setShowClinicalProfile] = useState(false);
+  const [metricsHistory, setMetricsHistory] = useState<any[]>([]);
+  const [trends, setTrends] = useState({
+    weight: { value: '---', trend: '0%', data: [] as number[], status: 'neutral' },
+    muscle: { value: '---', trend: '0%', data: [] as number[], status: 'neutral' },
+    fat: { value: '---', trend: '0%', data: [] as number[], status: 'neutral' },
+    visceral: { value: '---', trend: 'Estable', data: [] as number[], status: 'neutral' }
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,6 +67,62 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
         .single();
       setHealthProfile(healthData);
       setLoadingHealth(false);
+
+      // 3. Fetch Metrics History (Last 6 Months)
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+      const { data: historyData } = await supabase
+        .from('nutritional_evaluations')
+        .select('created_at, weight, muscle_mass_kg, body_fat_pct, visceral_fat_level')
+        .eq('patient_id', session.user.id)
+        .gte('created_at', sixMonthsAgo.toISOString())
+        .order('created_at', { ascending: true }); // Ascending for graph
+
+      if (historyData && historyData.length > 0) {
+        setMetricsHistory(historyData);
+
+        // Helper to calculate trend
+        const calcTrend = (key: string, label: string) => {
+          const values = historyData.filter(h => h[key] != null).map(h => h[key]);
+          if (values.length === 0) return { value: '---', trend: '0%', data: [0, 0, 0, 0, 0, 0], status: 'neutral' };
+
+          // Pad start with previous or first value if less than 6 to make graph look consistent? 
+          // Actually better to just show available. But TrendCard expects array.
+          // Let's take last 10 points max for sparkline
+          const sparkData = values.length < 2 ? [...Array(5).fill(values[0]), values[0]] : values.slice(-10);
+
+          const current = values[values.length - 1];
+          const previous = values.length > 1 ? values[values.length - 2] : current;
+          const diff = current - previous;
+          const pct = previous !== 0 ? ((diff / previous) * 100).toFixed(1) : '0';
+
+          const trendSign = diff > 0 ? '+' : '';
+          const status = key === 'muscle_mass_kg'
+            ? (diff >= 0 ? 'success' : 'warning')
+            : (diff <= 0 ? 'success' : 'warning'); // For weight/fat/visceral usually lower is better or stable? Depends. weight is neutral. Visceral lower is better.
+
+          // Custom formatting
+          let formattedValue = `${current}`;
+          if (key === 'visceral_fat_level') formattedValue = `Nivel ${current}`;
+          else if (key === 'body_fat_pct') formattedValue = `${current}%`;
+          else formattedValue = `${current}kg`;
+
+          return {
+            value: formattedValue,
+            trend: `${trendSign}${pct}%`,
+            data: sparkData,
+            status: key === 'weight' ? 'neutral' : status === 'success' ? 'success' : 'warning' // simplified status logic
+          };
+        };
+
+        setTrends({
+          weight: calcTrend('weight', 'Peso'),
+          muscle: calcTrend('muscle_mass_kg', 'Masa Muscular'),
+          fat: calcTrend('body_fat_pct', 'Grasa Corporal'),
+          visceral: calcTrend('visceral_fat_level', 'Grasa Visceral')
+        });
+      }
     };
 
     fetchData();
@@ -225,10 +288,10 @@ export default function PatientDashboard({ userName }: { userName?: string }) {
       <section className="mt-8">
         <h3 className="text-xl font-bold mb-6">Tendencias de Métricas (Últimos 6 Meses)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <TrendCard label="Peso" value="78kg" trend="-2%" color="primary" />
-          <TrendCard label="Masa Muscular" value="38.2kg" trend="+1.5%" color="primary" />
-          <TrendCard label="Sueño Promedio" value="7h 12m" trend="0%" color="status-amber" />
-          <TrendCard label="Grasa Visceral" value="Nivel 9" trend="Bien" color="primary" />
+          <TrendCard label="Peso" value={trends.weight.value} trend={trends.weight.trend} data={trends.weight.data} color="primary" />
+          <TrendCard label="Masa Muscular" value={trends.muscle.value} trend={trends.muscle.trend} data={trends.muscle.data} color="primary" />
+          <TrendCard label="Grasa Corporal" value={trends.fat.value} trend={trends.fat.trend} data={trends.fat.data} color="status-amber" />
+          <TrendCard label="Grasa Visceral" value={trends.visceral.value} trend={trends.visceral.trend} data={trends.visceral.data} color="primary" />
         </div>
       </section>
 
@@ -419,20 +482,57 @@ function EducationTip() {
   );
 }
 
-function TrendCard({ label, value, trend, color }: any) {
+function TrendCard({ label, value, trend, color, data }: any) {
+  // Conversión de datos planos a formato objeto para Recharts
+  const chartData = (data && data.length > 0) ? data.map((val: number, i: number) => ({ value: val, index: i })) : Array(10).fill(0).map((_, i) => ({ value: 0, index: i }));
+
+  // Definir colores basados en el prop 'color'
+  const strokeColor = color === 'status-amber' ? '#f59e0b' : color === 'status-red' ? '#ef4444' : '#10b981'; // emerald-500 por defecto para primary
+  const fillColor = color === 'status-amber' ? '#fcd34d' : color === 'status-red' ? '#fca5a5' : '#6ee7b7';
+
+  const isPositive = trend.includes('+');
+  const isNeutral = !trend.includes('+') && !trend.includes('-');
+
   return (
-    <div className="bg-card-light dark:bg-surface-dark p-4 rounded-lg border border-gray-100 dark:border-border-dark">
-      <p className="text-xs text-text-sub font-medium uppercase mb-2">{label}</p>
-      <div className="flex items-end justify-between">
-        <span className="text-xl font-bold">{value}</span>
-        <span className={`text-xs font-bold text-${color} flex items-center`}>
-          <span className="material-symbols-outlined text-sm">{trend.includes('+') ? 'trending_up' : 'trending_down'}</span> {trend}
-        </span>
+    <div className="bg-card-light dark:bg-surface-dark p-5 rounded-xl border border-gray-100 dark:border-border-dark flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition-all">
+      <div className="relative z-10">
+        <p className="text-xs text-text-sub font-bold uppercase tracking-wider mb-1">{label}</p>
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-black tracking-tight">{value}</span>
+          <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${isPositive ? 'text-emerald-600 bg-emerald-100 dark:bg-emerald-500/20 dark:text-emerald-400' :
+              isNeutral ? 'text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-400' :
+                'text-amber-600 bg-amber-100 dark:bg-amber-500/20 dark:text-amber-400'
+            }`}>
+            <span className="material-symbols-outlined text-[10px] font-bold">
+              {isPositive ? 'trending_up' : isNeutral ? 'remove' : 'trending_down'}
+            </span>
+            {trend}
+          </span>
+        </div>
       </div>
-      <div className="h-8 mt-2 flex items-end gap-1">
-        {[40, 60, 45, 70, 55, 80].map((h, i) => (
-          <div key={i} className={`flex-1 bg-${color}/${i === 5 ? '100' : '20'} h-[${h}%] rounded-sm`} style={{ height: `${h}%` }}></div>
-        ))}
+
+      {/* Gráfica de Fondo */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 opacity-50 group-hover:opacity-80 transition-opacity">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id={`gradient-${label}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={strokeColor} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={strokeColor} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            {/* YAxis invisible para escalar automáticamente la gráfica al contenido */}
+            <YAxis domain={['auto', 'auto']} hide={true} />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={strokeColor}
+              strokeWidth={2}
+              fill={`url(#gradient-${label})`}
+              animationDuration={1500}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

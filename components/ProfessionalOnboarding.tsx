@@ -204,14 +204,29 @@ export default function ProfessionalOnboarding({ onOnboardingComplete }: { onOnb
                     consultation_modality: modality,
                     documents_url: uploadedUrls,
                     signature_url: finalSignatureUrl,
-                    // is_verified remains false until admin approves
+                    verification_status: 'pending',
                     updated_at: new Date()
                 })
                 .eq('id', session.user.id);
 
             if (profileError) throw profileError;
 
-            // 3. Update Specialties (Delete all & Insert new)
+            // 3. Create or Refresh Verification Request
+            const { error: requestError } = await supabase
+                .from('verification_requests')
+                .upsert({
+                    professional_id: session.user.id,
+                    documents_url: uploadedUrls,
+                    mpps_registry: mpps,
+                    college_number: collegeNum,
+                    bio: bio,
+                    status: 'pending',
+                    updated_at: new Date()
+                }, { onConflict: 'professional_id' });
+
+            if (requestError) throw requestError;
+
+            // 4. Update Specialties (Delete all & Insert new)
             // Ideally we'd optimize this but this is safe for consistency
             if (!isNutritionist) {
                 await supabase.from('doctor_specialties').delete().eq('doctor_id', session.user.id);
@@ -259,8 +274,8 @@ export default function ProfessionalOnboarding({ onOnboardingComplete }: { onOnb
             />
 
             <header className="h-16 bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 z-10 sticky top-0">
-                <div className="flex items-center gap-2">
-                    <Logo className="size-8" showText={true} />
+                <div className="flex items-center">
+                    <Logo className="h-12 w-auto" showText={false} />
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="hidden sm:flex flex-col items-end">

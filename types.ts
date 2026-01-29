@@ -2,7 +2,15 @@
 export enum UserRole {
   PATIENT = 'PATIENT',
   DOCTOR = 'DOCTOR',
-  NUTRITIONIST = 'NUTRITIONIST'
+  NUTRITIONIST = 'NUTRITIONIST',
+  ADMIN = 'ADMIN'
+}
+
+export enum VerificationStatus {
+  NONE = 'none',
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected'
 }
 
 export interface MetricTrend {
