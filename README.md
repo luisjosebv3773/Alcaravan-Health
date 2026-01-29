@@ -5,14 +5,16 @@ Alcaraván Health es una plataforma integral de gestión de salud diseñada para
 ## 🚀 Características Principales
 
 ### 👥 Roles de Usuario
-El sistema maneja tres roles principales con interfaces y funcionalidades personalizadas:
+El sistema maneja cuatro roles principales con interfaces y funcionalidades personalizadas:
 - **Pacientes**: Dashboard personal, solicitud de citas, visualización de historial médico y consultas con IA.
 - **Médicos**: Panel clínico, gestión de agenda, historias médicas y configuración de perfil profesional.
 - **Nutricionistas**: Dashboard especializado, evaluaciones nutricionales y seguimiento de pacientes.
+- **Administradores**: Panel de control global, gestión de usuarios (RBAC) y validación de credenciales profesionales.
 
 ### ✨ Funcionalidades Clave
 - **Gestión de Citas**: Flujo completo para solicitar, agendar y cancelar citas (presenciales o virtuales).
-- **Onboarding Profesional**: Flujo de registro validado para médicos y nutricionistas, incluyendo carga de credenciales y firmas digitales.
+- **Onboarding y Verificación Profesional**: Proceso de registro validado para médicos y nutricionistas con un sistema de estados (`pending`, `approved`, `rejected`) para auditoría administrativa.
+- **Dashboard Administrativo**: Supervisión global de identidades, métricas de usuarios y consola de aprobación de credenciales médicas.
 - **Dashboard Clínico**: Visualización de métricas de pacientes, historial de consultas y herramientas de evaluación.
 - **Notificaciones en Tiempo Real**: Sistema de alertas integrado con Firebase Cloud Messaging (FCM).
 - **Asistente IA (Gemini)**: Chatbot integrado para responder dudas generales de salud y navegar por la plataforma.
@@ -44,6 +46,9 @@ El sistema maneja tres roles principales con interfaces y funcionalidades person
 ```
 /
 ├── components/           # Componentes de UI (Dashboards, Formularios, etc.)
+│   ├── AdminDashboard.tsx         # Panel de control de administradores
+│   ├── AdminUserManagement.tsx    # Gestión de usuarios del sistema
+│   ├── PendingVerification.tsx     # Vista de espera para profesionales
 │   ├── ProfessionalOnboarding.tsx # Flujo de registro profesionales
 │   ├── RequestAppointment.tsx     # Solicitud de citas pacientes
 │   └── ...
@@ -90,7 +95,8 @@ El sistema maneja tres roles principales con interfaces y funcionalidades person
 ## 🗄️ Base de Datos (Supabase)
 
 El sistema utiliza tablas relacionales clave:
-- `profiles`: Almacena información extendida de usuarios (roles, credenciales, bio).
+- `profiles`: Almacena información extendida de usuarios (roles, credenciales, bio, estado de verificación).
+- `verification_requests`: Solicitudes detalladas de verificación para profesionales.
 - `appointments`: Registro de citas médicas.
 - `specialties` & `doctor_specialties`: Relación de especialidades médicas (Muchos a Muchos).
 - `notificaciones`: Historial de alertas para usuarios.
