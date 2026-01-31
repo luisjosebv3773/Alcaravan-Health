@@ -75,3 +75,4 @@ El sistema utiliza un diseño de base de datos robusto y normalizado:
 
 ---
 *Alcaraván Health - Transformando la atención médica con Innovación Digital*
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/luisjosebv3773/Alcaravan-Health)
