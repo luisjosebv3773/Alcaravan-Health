@@ -1,36 +1,49 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import PatientDashboard from './components/PatientDashboard';
-import ClinicalDashboard from './components/ClinicalDashboard';
-import NutritionistDashboard from './components/NutritionistDashboard';
-import NutritionistEvaluation from './components/NutritionistEvaluation';
-import RequestAppointment from './components/RequestAppointment';
-import AppointmentHistory from './components/AppointmentHistory';
-import AppointmentDetails from './components/AppointmentDetails';
-import PatientDetails from './components/PatientDetails';
-import ProfessionalOnboarding from './components/ProfessionalOnboarding';
-import ProfessionalSidebar from './components/ProfessionalSidebar';
-import PatientDirectory from './components/PatientDirectory';
-import ProfessionalAppointmentHistory from './components/ProfessionalAppointmentHistory';
-import AdminDashboard from './components/AdminDashboard';
-import AdminUserManagement from './components/AdminUserManagement';
-import PendingVerification from './components/PendingVerification';
 import { Logo } from './components/Logo';
-
-
 import AIChatbot from './components/AIChatbot';
-import Login from './components/Login';
-import Register from './components/Register';
-import ResetPassword from './components/ResetPassword';
-import ForgotPassword from './components/ForgotPassword';
-import Consultation from './components/Consultation';
-import UserProfile from './components/UserProfile';
-import BookAppointment from './components/BookAppointment';
-import { supabase } from './services/supabase';
+import Login from './features/auth/Login';
+import Register from './features/auth/Register';
+import ResetPassword from './features/auth/ResetPassword';
+import ForgotPassword from './features/auth/ForgotPassword';
+import { supabase } from './services/supabase'; // Used in Header
+import { useAuth } from './hooks/useAuth';
 import { UserRole, VerificationStatus } from './types';
 import { messaging, requestNotificationPermission } from './services/firebase';
 import { onMessage } from 'firebase/messaging';
+
+// Lazy loading components for better performance
+const PatientDashboard = React.lazy(() => import('./components/PatientDashboard'));
+const ClinicalDashboard = React.lazy(() => import('./components/ClinicalDashboard'));
+const NutritionistDashboard = React.lazy(() => import('./components/NutritionistDashboard'));
+const NutritionistEvaluation = React.lazy(() => import('./components/NutritionistEvaluation'));
+const RequestAppointment = React.lazy(() => import('./components/RequestAppointment'));
+const AppointmentHistory = React.lazy(() => import('./components/AppointmentHistory'));
+const AppointmentDetails = React.lazy(() => import('./components/AppointmentDetails'));
+const PatientDetails = React.lazy(() => import('./components/PatientDetails'));
+const ProfessionalOnboarding = React.lazy(() => import('./components/ProfessionalOnboarding'));
+const ProfessionalSidebar = React.lazy(() => import('./components/ProfessionalSidebar'));
+const PatientDirectory = React.lazy(() => import('./components/PatientDirectory'));
+const ProfessionalAppointmentHistory = React.lazy(() => import('./components/ProfessionalAppointmentHistory'));
+const AdminDashboard = React.lazy(() => import('./components/AdminDashboard'));
+const AdminUserManagement = React.lazy(() => import('./components/AdminUserManagement'));
+const PendingVerification = React.lazy(() => import('./components/PendingVerification'));
+const Consultation = React.lazy(() => import('./components/Consultation'));
+const UserProfile = React.lazy(() => import('./components/UserProfile'));
+const BookAppointment = React.lazy(() => import('./components/BookAppointment'));
+
+// Loading component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+    <div className="flex flex-col items-center gap-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <p className="text-slate-500 text-sm font-medium animate-pulse">Cargando...</p>
+    </div>
+  </div>
+);
+
+import { Toaster } from 'react-hot-toast';
 
 
 const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; onLogout: () => void; needsOnboarding?: boolean }> = ({ role, userName, avatarUrl, onLogout, needsOnboarding }) => {
@@ -242,167 +255,27 @@ const Header: React.FC<{ role: UserRole; userName: string; avatarUrl: string; on
 
 
 function AppContent() {
+  const {
+    role,
+    userName,
+    avatarUrl,
+    isLoggedIn,
+    needsOnboarding,
+    isVerified,
+    loading,
+    setNeedsOnboarding,
+    setIsVerified,
+    handleLogin,
+    handleLogout
+  } = useAuth();
 
-  const [role, setRole] = useState<UserRole | null>(null);
-  const [userName, setUserName] = useState<string>('');
-  const [avatarUrl, setAvatarUrl] = useState<string>('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [isVerified, setIsVerified] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        // Fetch role if session exists
-        supabase
-          .from('profiles')
-          .select('full_name, role, avatar_url, mpps_registry, is_verified, verification_status')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile }) => {
-            if (profile?.role) {
-              let appRole: UserRole;
-              switch (profile.role) {
-                case 'doctor': appRole = UserRole.DOCTOR; break;
-                case 'nutri':
-                case 'nutritionist': appRole = UserRole.NUTRITIONIST; break;
-                case 'admin': appRole = UserRole.ADMIN; break;
-                case 'paciente':
-                default: appRole = UserRole.PATIENT; break;
-              }
-              setRole(appRole);
-              if (profile.full_name) setUserName(profile.full_name);
-              if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
-
-              // Check onboarding status for professionals
-              const isOnboardingCreate = (appRole === UserRole.DOCTOR || appRole === UserRole.NUTRITIONIST) && !profile.mpps_registry;
-              setNeedsOnboarding(isOnboardingCreate);
-
-              const verifiedStatus = profile.verification_status === 'approved' || profile.is_verified === true;
-              setIsVerified(verifiedStatus);
-
-              // New: Global status for rejection view
-              if (profile.verification_status === 'rejected' && location.pathname !== '/pending-verification') {
-                navigate('/pending-verification');
-              }
-
-              setIsLoggedIn(true);
-
-              // Redirect if needed and not already there
-              if (isOnboardingCreate && location.pathname !== '/onboarding') {
-                navigate('/onboarding');
-              }
-
-              // Request notification permission and save token
-              requestNotificationPermission().then(token => {
-                if (token) {
-                  console.log('FCM Token generated successfully:', token);
-                  supabase
-                    .from('profiles')
-                    .update({ fcm_token: token })
-                    .eq('id', session.user.id)
-                    .then(({ error, data }) => {
-                      if (error) console.error('Error saving FCM token to DB:', error);
-                      else console.log('FCM Token saved to DB successfully');
-                    });
-                } else {
-                  console.warn('FCM Token could not be generated (permission denied or error)');
-                }
-              });
-
-              // Handle FCM messages in foreground
-              if (messaging) {
-                onMessage(messaging, (payload) => {
-                  console.log('FCM Message received in foreground:', payload);
-
-                  // Show system notification even in foreground
-                  if (Notification.permission === 'granted') {
-                    const notification = new Notification(payload.notification?.title || 'Nueva Notificación', {
-                      body: payload.notification?.body,
-                      icon: '/pwa-192x192.png',
-                      tag: payload.messageId // Avoid spam
-                    });
-
-                    notification.onclick = () => {
-                      window.focus();
-                      notification.close();
-                    };
-                  }
-                });
-              }
-            }
-          });
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        setIsLoggedIn(false);
-        setRole(null);
-        setUserName('');
-        setAvatarUrl('');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLogin = (selectedRole: UserRole, name?: string, avatarUrl?: string, isOnboardingRequired?: boolean) => {
-    setRole(selectedRole);
-    if (name) setUserName(name);
-    if (avatarUrl) setAvatarUrl(avatarUrl);
-    setNeedsOnboarding(!!isOnboardingRequired);
-    setIsVerified(true); // Default to true on login, reload will check DB if needed
-    setIsLoggedIn(true);
-
-    // Request notification permission and save token after manual login
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        requestNotificationPermission().then(token => {
-          if (token) {
-            supabase
-              .from('profiles')
-              .update({ fcm_token: token })
-              .eq('id', session.user.id)
-              .then(({ error }) => {
-                if (error) console.error('Error saving FCM token:', error);
-              });
-          }
-        });
-      }
-    });
-
-    if (isOnboardingRequired) {
-      navigate('/onboarding');
-      return;
-    }
-
-    if (!isVerified && (selectedRole === UserRole.DOCTOR || selectedRole === UserRole.NUTRITIONIST)) {
-      navigate('/pending-verification');
-      return;
-    }
-
-    if (selectedRole === UserRole.PATIENT) navigate('/');
-    else if (selectedRole === UserRole.DOCTOR) navigate('/clinical');
-    else if (selectedRole === UserRole.NUTRITIONIST) navigate('/nutrition');
-    else if (selectedRole === UserRole.ADMIN) navigate('/admin');
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setRole(null);
-    setUserName('');
-    setAvatarUrl('');
-    setIsLoggedIn(false);
-    navigate('/login');
-  };
-
+  // Redirect Logic handled in hook mostly, but strict "guards" can remain here for rendering
   const isPublicRoute = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
+
+  if (loading) return <PageLoader />;
 
   if (!isLoggedIn && !isPublicRoute) {
     return <Navigate to="/login" replace />;
@@ -422,48 +295,64 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col">
+
       {isLoggedIn && role && <Header role={role} userName={userName} avatarUrl={avatarUrl} onLogout={handleLogout} needsOnboarding={needsOnboarding} />}
       <div className="flex flex-1 relative">
         {isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) && !needsOnboarding && isVerified && (
-          <ProfessionalSidebar role={role} />
+          <Suspense fallback={<div className="w-64 bg-surface-light dark:bg-surface-dark border-r border-gray-100 dark:border-gray-800 hidden md:block" />}>
+            <ProfessionalSidebar role={role} />
+          </Suspense>
         )}
         <main className="flex-grow overflow-y-auto">
-          <Routes>
-            <Route path="/login" element={<Login onLogin={handleLogin} />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login onLogin={handleLogin} />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            <Route path="/" element={
-              role === UserRole.PATIENT ? <PatientDashboard userName={userName} /> :
-                (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) && !isVerified ? <Navigate to="/pending-verification" replace /> :
-                  role === UserRole.DOCTOR ? <Navigate to="/clinical" replace /> :
-                    role === UserRole.NUTRITIONIST ? <Navigate to="/nutrition" replace /> :
-                      role === UserRole.ADMIN ? <Navigate to="/admin" replace /> :
-                        <Navigate to="/login" replace />
-            } />
+              <Route path="/" element={
+                role === UserRole.PATIENT ? <PatientDashboard userName={userName} /> :
+                  (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) && !isVerified ? <Navigate to="/pending-verification" replace /> :
+                    role === UserRole.DOCTOR ? <Navigate to="/clinical" replace /> :
+                      role === UserRole.NUTRITIONIST ? <Navigate to="/nutrition" replace /> :
+                        role === UserRole.ADMIN ? <Navigate to="/admin" replace /> :
+                          <Navigate to="/login" replace />
+              } />
 
-            <Route path="/admin" element={role === UserRole.ADMIN ? <AdminDashboard /> : <Navigate to="/login" />} />
-            <Route path="/admin/users" element={role === UserRole.ADMIN ? <AdminUserManagement /> : <Navigate to="/login" />} />
+              <Route path="/admin" element={role === UserRole.ADMIN ? <AdminDashboard /> : <Navigate to="/login" />} />
+              <Route path="/admin/users" element={role === UserRole.ADMIN ? <AdminUserManagement /> : <Navigate to="/login" />} />
 
-            <Route path="/clinical" element={role === UserRole.DOCTOR ? <ClinicalDashboard /> : <Navigate to="/login" />} />
-            <Route path="/book-appointment" element={role === UserRole.DOCTOR ? <BookAppointment /> : <Navigate to="/login" />} />
-            <Route path="/consultation/:id" element={role === UserRole.DOCTOR ? <Consultation /> : <Navigate to="/login" />} />
-            <Route path="/nutrition" element={role === UserRole.NUTRITIONIST ? <NutritionistDashboard /> : <Navigate to="/login" />} />
-            <Route path="/patient-details/:id" element={isLoggedIn ? <PatientDetails /> : <Navigate to="/login" />} />
-            <Route path="/patients" element={(role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <PatientDirectory /> : <Navigate to="/login" />} />
-            <Route path="/appointment-history-pro" element={(role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalAppointmentHistory /> : <Navigate to="/login" />} />
-            <Route path="/nutrition/evaluate/:id/:evaluationId?" element={role === UserRole.NUTRITIONIST ? <NutritionistEvaluation /> : <Navigate to="/login" />} />
-            <Route path="/request-appointment" element={role === UserRole.PATIENT ? <RequestAppointment /> : <Navigate to="/login" />} />
-            <Route path="/appointment-history" element={role === UserRole.PATIENT ? <AppointmentHistory /> : <Navigate to="/login" />} />
-            <Route path="/appointment-details/:id" element={role === UserRole.PATIENT ? <AppointmentDetails /> : <Navigate to="/login" />} />
-            <Route path="/profile" element={isLoggedIn ? <UserProfile /> : <Navigate to="/login" />} />
-            <Route path="/onboarding" element={isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalOnboarding onOnboardingComplete={() => { setNeedsOnboarding(false); setIsVerified(false); navigate('/pending-verification'); }} /> : <Navigate to="/login" />} />
-            <Route path="/pending-verification" element={isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) && !isVerified ? <PendingVerification /> : <Navigate to="/" />} />
-          </Routes>
+              <Route path="/clinical" element={role === UserRole.DOCTOR ? <ClinicalDashboard /> : <Navigate to="/login" />} />
+              <Route path="/book-appointment" element={role === UserRole.DOCTOR ? <BookAppointment /> : <Navigate to="/login" />} />
+              <Route path="/consultation/:id" element={role === UserRole.DOCTOR ? <Consultation /> : <Navigate to="/login" />} />
+              <Route path="/nutrition" element={role === UserRole.NUTRITIONIST ? <NutritionistDashboard /> : <Navigate to="/login" />} />
+              <Route path="/patient-details/:id" element={isLoggedIn ? <PatientDetails /> : <Navigate to="/login" />} />
+              <Route path="/patients" element={(role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <PatientDirectory /> : <Navigate to="/login" />} />
+              <Route path="/appointment-history-pro" element={(role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalAppointmentHistory /> : <Navigate to="/login" />} />
+              <Route path="/nutrition/evaluate/:id/:evaluationId?" element={role === UserRole.NUTRITIONIST ? <NutritionistEvaluation /> : <Navigate to="/login" />} />
+              <Route path="/request-appointment" element={role === UserRole.PATIENT ? <RequestAppointment /> : <Navigate to="/login" />} />
+              <Route path="/appointment-history" element={role === UserRole.PATIENT ? <AppointmentHistory /> : <Navigate to="/login" />} />
+              <Route path="/appointment-details/:id" element={role === UserRole.PATIENT ? <AppointmentDetails /> : <Navigate to="/login" />} />
+              <Route path="/profile" element={isLoggedIn ? <UserProfile /> : <Navigate to="/login" />} />
+              <Route path="/onboarding" element={isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) ? <ProfessionalOnboarding onOnboardingComplete={() => { setNeedsOnboarding(false); setIsVerified(false); navigate('/pending-verification'); }} /> : <Navigate to="/login" />} />
+              <Route path="/pending-verification" element={isLoggedIn && (role === UserRole.DOCTOR || role === UserRole.NUTRITIONIST) && !isVerified ? <PendingVerification /> : <Navigate to="/" />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
       {isLoggedIn && <AIChatbot />}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: '#333',
+            color: '#fff',
+            borderRadius: '12px',
+          },
+          className: 'dark:bg-card-dark dark:text-white dark:border dark:border-gray-800'
+        }}
+      />
     </div>
   );
 }

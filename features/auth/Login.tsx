@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { UserRole } from '../types';
-import { supabase } from '../services/supabase';
+import { UserRole } from '../../types';
+import { supabase } from '../../services/supabase';
 import { Link, useNavigate } from 'react-router-dom';
-import { Logo } from './Logo';
+import { Logo } from '../../components/Logo';
 
+import toast from 'react-hot-toast';
 
 interface LoginProps {
   onLogin: (role: UserRole, name?: string, avatarUrl?: string, isOnboardingRequired?: boolean) => void;
@@ -13,19 +14,18 @@ interface LoginProps {
 export default function Login({ onLogin }: LoginProps) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Por favor ingresa tu correo y contraseña');
+      toast.error('Por favor ingresa tu correo y contraseña');
       return;
     }
 
     setLoading(true);
-    setError(null);
+    const toastId = toast.loading('Iniciando sesión...');
 
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -44,13 +44,10 @@ export default function Login({ onLogin }: LoginProps) {
           .single();
 
         if (profileError) {
-          // Handle case where profile might not exist immediately if trigger failed
-          // Fallback or error
           throw new Error('No se pudo obtener el perfil del usuario.');
         }
 
         if (profile?.role) {
-          // Map string role to UserRole enum... (existing logic)
           let appRole: UserRole;
           switch (profile.role) {
             case 'doctor': appRole = UserRole.DOCTOR; break;
@@ -61,22 +58,23 @@ export default function Login({ onLogin }: LoginProps) {
             default: appRole = UserRole.PATIENT; break;
           }
           const needsOnboarding = (appRole === UserRole.DOCTOR || appRole === UserRole.NUTRITIONIST) && !profile.mpps_registry;
+
+          toast.success(`Bienvenido de nuevo, ${profile.full_name || 'Usuario'}`, { id: toastId });
           onLogin(appRole, profile.full_name, profile.avatar_url, needsOnboarding);
         }
       }
     } catch (err: any) {
-      // Translate common Supabase auth errors to Spanish
       let errorMessage = err.message || 'Error al iniciar sesión';
 
       if (err.message?.includes('Email not confirmed')) {
-        errorMessage = '📧 Correo no verificado. Por favor revisa tu bandeja de entrada y confirma tu correo electrónico antes de iniciar sesión.';
+        errorMessage = '📧 Correo no verificado. Revisa tu bandeja de entrada.';
       } else if (err.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Correo o contraseña incorrectos. Por favor verifica tus datos.';
+        errorMessage = 'Correo o contraseña incorrectos.';
       } else if (err.message?.includes('User not found')) {
-        errorMessage = 'No existe una cuenta con este correo electrónico.';
+        errorMessage = 'No existe una cuenta con este correo.';
       }
 
-      setError(errorMessage);
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -98,12 +96,6 @@ export default function Login({ onLogin }: LoginProps) {
             <h3 className="text-2xl font-bold mb-2 text-center">Iniciar Sesión</h3>
             <p className="text-text-sub dark:text-gray-400 text-center">Ingresa a tu cuenta</p>
           </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleLogin} className="space-y-4 mb-8">
             <div>

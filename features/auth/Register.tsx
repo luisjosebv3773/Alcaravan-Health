@@ -1,17 +1,14 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../services/supabase';
-import { UserRole } from '../types';
-import AppDialog from './AppDialog';
-import { Logo } from './Logo';
+import { supabase } from '../../services/supabase';
+import { UserRole } from '../../types';
+import toast from 'react-hot-toast';
+import { Logo } from '../../components/Logo';
 
 export default function Register() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [step, setStep] = useState<'role' | 'details'>('role');
-    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -56,6 +53,7 @@ export default function Register() {
 
             if (data === true) {
                 setCedulaError('Esta cédula ya está registrada y asociada a otro usuario.');
+                toast.error('Cédula ya registrada');
             } else {
                 setCedulaError(null);
             }
@@ -65,14 +63,14 @@ export default function Register() {
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.role || !formData.email || !formData.password || !formData.fullName || !formData.cedula || !formData.birthDate) {
-            setError('Por favor completa todos los campos');
+            toast.error('Por favor completa todos los campos');
             return;
         }
 
         if (cedulaError) return;
 
         setLoading(true);
-        setError(null);
+        const toastId = toast.loading('Creando tu cuenta...');
 
         try {
             // Check cedula uniqueness again before submit
@@ -109,33 +107,20 @@ export default function Register() {
             }
 
             if (data.user) {
-                setShowSuccessDialog(true);
+                toast.success('¡Registro exitoso! Revisa tu correo.', { id: toastId, duration: 5000 });
+                setTimeout(() => navigate('/login'), 2000);
             }
         } catch (err: any) {
-            setError(err.message || 'Error al registrarte');
+            toast.error(err.message || 'Error al registrarte', { id: toastId });
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleDialogClose = () => {
-        setShowSuccessDialog(false);
-        navigate('/login');
     };
 
     const todayDate = new Date().toISOString().split('T')[0];
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-6">
-            <AppDialog
-                isOpen={showSuccessDialog}
-                onClose={handleDialogClose}
-                title="Registro Exitoso"
-                message="Tu cuenta ha sido creada correctamente en el ecosistema Alcaraván Health. Por favor revisa tu bandeja de entrada para confirmar tu correo electrónico antes de iniciar sesión."
-                primaryButtonText="Aceptar"
-                onPrimaryAction={handleDialogClose}
-            />
-
             <div className="w-full max-w-2xl bg-card-light dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
 
                 <div className="p-8 lg:p-12 relative">
@@ -152,12 +137,6 @@ export default function Register() {
                             {step === 'role' ? 'Selecciona tu tipo de perfil' : 'Ingresa tus datos personales'}
                         </p>
                     </div>
-
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
-                            {error}
-                        </div>
-                    )}
 
                     {step === 'role' ? (
                         <div className="space-y-4">

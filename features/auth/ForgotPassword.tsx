@@ -1,18 +1,18 @@
 
 import React, { useState } from 'react';
-import { supabase } from '../services/supabase';
+import { supabase } from '../../services/supabase';
 import { Link } from 'react-router-dom';
-import { Logo } from './Logo';
+import { Logo } from '../../components/Logo';
+
+import toast from 'react-hot-toast';
 
 export default function ForgotPassword() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const handleResetRequest = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setMessage(null);
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -21,15 +21,9 @@ export default function ForgotPassword() {
 
             if (error) throw error;
 
-            setMessage({
-                type: 'success',
-                text: '📧 Se ha enviado un enlace de recuperación a tu correo electrónico. Por favor, revisa tu bandeja de entrada.'
-            });
+            toast.success('📧 Enlace enviado. Revisa tu bandeja de entrada.', { duration: 6000 });
         } catch (err: any) {
-            setMessage({
-                type: 'error',
-                text: err.message || 'Error al solicitar la recuperación'
-            });
+            toast.error(err.message || 'Error al solicitar recuperación');
         } finally {
             setLoading(false);
         }
@@ -46,15 +40,6 @@ export default function ForgotPassword() {
                         <h3 className="text-2xl font-bold mb-2 text-center">Recuperar Contraseña</h3>
                         <p className="text-text-sub dark:text-gray-400 text-center">Ingresa tu correo para recibir un enlace de recuperación</p>
                     </div>
-
-                    {message && (
-                        <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${message.type === 'success'
-                            ? 'bg-green-50 text-green-600 border-green-100'
-                            : 'bg-red-50 text-red-600 border-red-100'
-                            }`}>
-                            {message.text}
-                        </div>
-                    )}
 
                     <form onSubmit={handleResetRequest} className="space-y-4 mb-8">
                         <div>
