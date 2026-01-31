@@ -64,6 +64,7 @@ export default function Consultation() {
         if (id) fetchConsultationData();
     }, [id]);
 
+
     const fetchConsultationData = async () => {
         try {
             const { data: appointment, error } = await supabase
@@ -97,7 +98,7 @@ export default function Consultation() {
             setData(appointment);
             setMeetLink(appointment.meet_link || '');
 
-            // Fetch existing consultation if it exists
+            // Fetch existing consultation
             const { data: consultationData, error: consultationError } = await supabase
                 .from('consultations')
                 .select('*')
@@ -107,39 +108,25 @@ export default function Consultation() {
             if (consultationData) {
                 setReason(consultationData.reason || '');
                 setIllnessHistory(consultationData.current_illness || '');
-                if (consultationData.vital_signs) {
-                    setVitals({
-                        ta: consultationData.vital_signs.ta || '',
-                        fc: consultationData.vital_signs.fc || '',
-                        temp: consultationData.vital_signs.temp || '',
-                        spo2: consultationData.vital_signs.spo2 || ''
-                    });
-                }
 
-                // Parse diagnosis if safely stored as stringified JSON or plain text
-                // Assuming stored as text for now but if we change to JSON structure in future migration:
+                // Mapeo de columnas planas a estado visual
+                setVitals({
+                    ta: (consultationData.bp_systolic && consultationData.bp_diastolic)
+                        ? `${consultationData.bp_systolic}/${consultationData.bp_diastolic}`
+                        : (consultationData.vital_signs?.ta || ''),
+                    fc: consultationData.heart_rate?.toString() || consultationData.vital_signs?.fc || '',
+                    temp: consultationData.temp_c?.toString() || consultationData.vital_signs?.temp || '',
+                    spo2: consultationData.oxygen_sat?.toString() || consultationData.vital_signs?.spo2 || ''
+                });
+
                 if (consultationData.diagnosis && consultationData.diagnosis.startsWith('[')) {
                     try {
                         const parsed = JSON.parse(consultationData.diagnosis);
                         if (Array.isArray(parsed)) setSelectedDiagnoses(parsed);
-                    } catch (e) {
-                        // fallback usually plain text
-                    }
+                    } catch (e) { }
                 }
                 if (consultationData.diagnosis_type) setDiagType(consultationData.diagnosis_type);
                 setInternalNotes(consultationData.internal_notes || '');
-
-                if (consultationData.prescription) {
-                    // Check if old format (array) or new format (object with visible)
-                    // We will aim for { items: [], visible: boolean }
-                    // But if it's just an array, we default visible to true
-                    if (Array.isArray(consultationData.prescription)) {
-                        setPrescriptionList(consultationData.prescription);
-                    } else if (consultationData.prescription.items) {
-                        setPrescriptionList(consultationData.prescription.items);
-                        if (consultationData.prescription.visible !== undefined) setShowPrescription(consultationData.prescription.visible);
-                    }
-                }
 
                 if (consultationData.medical_rest) {
                     if (consultationData.medical_rest.days) setRestDays(consultationData.medical_rest.days);
@@ -147,15 +134,26 @@ export default function Consultation() {
                     if (consultationData.medical_rest.visible !== undefined) setShowMedicalRest(consultationData.medical_rest.visible);
                 }
 
+                // Fetch Prescriptions from new table
+                const { data: rxData } = await supabase
+                    .from('prescriptions')
+                    .select('*')
+                    .eq('consultation_id', consultationData.id);
+
+                if (rxData && rxData.length > 0) {
+                    setPrescriptionList(rxData.map(rx => ({
+                        name: rx.medication_name,
+                        dose: rx.dosage,
+                        frequency: rx.frequency,
+                        duration: rx.duration
+                    })));
+                    setShowPrescription(true);
+                }
+
                 // Load Exams Data
                 if (consultationData.exams_requested) {
-                    if (Array.isArray(consultationData.exams_requested)) {
-                        // Fallback for old simple arrays if exists
-                        // But we want { items: [], visible: boolean }
-                    } else {
-                        if (consultationData.exams_requested.items) setExamsRequested(consultationData.exams_requested.items);
-                        if (consultationData.exams_requested.visible !== undefined) setShowRequestExams(consultationData.exams_requested.visible);
-                    }
+                    if (consultationData.exams_requested.items) setExamsRequested(consultationData.exams_requested.items);
+                    if (consultationData.exams_requested.visible !== undefined) setShowRequestExams(consultationData.exams_requested.visible);
                 }
 
                 if (consultationData.exam_results) {
@@ -163,28 +161,24 @@ export default function Consultation() {
                     if (consultationData.exam_results.visible !== undefined) setShowResultExams(consultationData.exam_results.visible);
                 }
             }
-
-
         } catch (error) {
             console.error("Error fetching consultation:", error);
-            // Don't alert here if it's just that the consultation doesn't exist yet
         } finally {
             setLoading(false);
         }
     };
+
 
     // Diagnosis Search Logic
     useEffect(() => {
         const timer = setTimeout(async () => {
             if (diagnosisSearch.length > 1) {
                 try {
-                    // Search in our local Spanish CIE-10 table (diagnosticos_cie10)
-                    // We search if the code starts with the term OR the description contains the term
                     const { data, error } = await supabase
                         .from('diagnosticos_cie10')
                         .select('codigo, descripcion, categoria')
                         .or(`codigo.ilike.${diagnosisSearch}%,descripcion.ilike.%${diagnosisSearch}%`)
-                        .limit(10); // Check up to 10 results now that we have categorized local data
+                        .limit(10);
 
                     if (error) throw error;
 
@@ -223,7 +217,7 @@ export default function Consultation() {
     const addPrescriptionItem = () => {
         if (!rxInput.name.trim()) return;
         setPrescriptionList([...prescriptionList, rxInput]);
-        setRxInput({ name: '', dose: '', frequency: '', duration: '' }); // Reset input
+        setRxInput({ name: '', dose: '', frequency: '', duration: '' });
     };
 
     const removePrescriptionItem = (index: number) => {
@@ -232,12 +226,13 @@ export default function Consultation() {
         setPrescriptionList(newList);
     };
 
+
     const handleSave = async () => {
         if (!reason.trim()) {
             setDialogConfig({
                 type: 'error',
                 title: 'Campo Requerido',
-                message: 'El Motivo de Consulta es obligatorio para guardar la consulta.'
+                message: 'El Motivo de Consulta es obligatorio.'
             });
             setDialogOpen(true);
             return;
@@ -247,33 +242,70 @@ export default function Consultation() {
         try {
             const { data: sessionData } = await supabase.auth.getSession();
             const doctorId = sessionData.session?.user.id;
-
             if (!doctorId) throw new Error("No allowed");
 
+            // Parse Blood Pressure
+            let sys = null, dia = null;
+            if (vitals.ta.includes('/')) {
+                const parts = vitals.ta.split('/');
+                sys = parseInt(parts[0]);
+                dia = parseInt(parts[1]);
+            }
+
+            // 1. Upsert Consultation
             const consultationPayload = {
                 appointment_id: id,
                 doctor_id: doctorId,
                 patient_id: data.patient_id,
                 reason: reason,
                 current_illness: illnessHistory,
-                vital_signs: vitals,
-                diagnosis: JSON.stringify(selectedDiagnoses), // Store as JSON string for now since column is TEXT
+                // Nuevas columnas planas
+                weight_kg: null,
+                height_cm: null,
+                bp_systolic: sys,
+                bp_diastolic: dia,
+                heart_rate: parseInt(vitals.fc) || null,
+                temp_c: parseFloat(vitals.temp) || null,
+                oxygen_sat: parseInt(vitals.spo2) || null,
+
+                diagnosis: JSON.stringify(selectedDiagnoses),
                 diagnosis_type: diagType,
                 internal_notes: internalNotes,
-                prescription: { items: prescriptionList, visible: showPrescription },
                 medical_rest: { days: restDays, type: restType, visible: showMedicalRest },
                 exams_requested: { items: examsRequested, visible: showRequestExams },
                 exam_results: { items: examResults, visible: showResultExams },
                 updated_at: new Date()
             };
 
-            const { error } = await supabase
+            const { data: savedConsultation, error } = await supabase
                 .from('consultations')
-                .upsert(consultationPayload, { onConflict: 'appointment_id' });
+                .upsert(consultationPayload, { onConflict: 'appointment_id' })
+                .select()
+                .single();
 
             if (error) throw error;
 
-            // Mark Appointment as Completed
+            // 2. Save Prescriptions (Delete old & Insert new to simplifiy logic)
+            if (savedConsultation) {
+                // Delete existing for this consultation
+                await supabase.from('prescriptions').delete().eq('consultation_id', savedConsultation.id);
+
+                // Insert new ones
+                if (prescriptionList.length > 0) {
+                    const rxPayload = prescriptionList.map(rx => ({
+                        consultation_id: savedConsultation.id,
+                        medication_name: rx.name,
+                        dosage: rx.dose,
+                        frequency: rx.frequency,
+                        duration: rx.duration
+                    }));
+
+                    const { error: rxError } = await supabase.from('prescriptions').insert(rxPayload);
+                    if (rxError) console.error("Error saving prescriptions:", rxError);
+                }
+            }
+
+            // 3. Mark Appointment as Completed
             const { error: apptError } = await supabase
                 .from('appointments')
                 .update({ status: 'completed' })
@@ -281,18 +313,18 @@ export default function Consultation() {
 
             if (apptError) throw apptError;
 
-            // Notify Patient
+            // 4. Notify Patient
             await supabase.from('notificaciones').insert({
                 user_id: data.patient_id,
                 titulo: 'Consulta Finalizada',
-                mensaje: `Tu consulta del ${data.appointment_date} ha sido completada. Ya puedes revisar tus resultados y recetas en el portal.`,
+                mensaje: `Tu consulta del ${data.appointment_date} ha sido completada.`,
                 tipo: 'cita'
             });
 
             setDialogConfig({
                 type: 'success',
                 title: 'Consulta Finalizada',
-                message: 'La consulta ha sido guardada y marcada como completada exitosamente.',
+                message: 'Datos guardados correctamente.',
                 onConfirm: () => navigate('/clinical')
             });
             setDialogOpen(true);
@@ -302,7 +334,7 @@ export default function Consultation() {
             setDialogConfig({
                 type: 'error',
                 title: 'Error al Guardar',
-                message: 'Hubo un problema al guardar los datos: ' + error.message
+                message: error.message
             });
             setDialogOpen(true);
         } finally {

@@ -244,9 +244,9 @@ const AdminUserManagement: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded border ${u.role === 'doctor' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                                                            u.role === 'paciente' ? 'bg-primary/10 text-primary border-primary/20' :
-                                                                u.role === 'nutri' || u.role === 'nutritionist' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
-                                                                    'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                                                        u.role === 'paciente' ? 'bg-primary/10 text-primary border-primary/20' :
+                                                            u.role === 'nutri' || u.role === 'nutritionist' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
+                                                                'bg-orange-500/10 text-orange-500 border-orange-500/20'
                                                         }`}>
                                                         {getRoleLabel(u.role)}
                                                     </span>
@@ -260,7 +260,12 @@ const AdminUserManagement: React.FC = () => {
                                                 <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">{formatLastActive(u.created_at)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-end">
-                                                        <button className="px-3 py-1 text-[11px] font-bold rounded bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors text-slate-600 dark:text-slate-300">Editar</button>
+                                                        <button
+                                                            onClick={() => navigate(`/admin/user/${u.id}`)}
+                                                            className="px-3 py-1 text-[11px] font-bold rounded bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors text-slate-600 dark:text-slate-300"
+                                                        >
+                                                            Editar
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>

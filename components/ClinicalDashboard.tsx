@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import AppDialog from './AppDialog';
+import toast from 'react-hot-toast';
 
 // --- TRANSLATION MAPS ---
 const STATUS_LABELS: Record<string, string> = {
@@ -169,26 +170,26 @@ export default function ClinicalDashboard() {
   const confirmReject = async () => {
     if (!rejectDialog.id) return;
 
-    // Find appointment details before updating
-    const appt = pendingAppointments.find(a => a.id === rejectDialog.id);
+    try {
+      const { error } = await supabase.functions.invoke('manage-appointment', {
+        body: {
+          action: 'reject',
+          appointment_id: rejectDialog.id,
+          doctor_name: doctorName
+        }
+      });
 
-    const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', rejectDialog.id);
-    setRejectDialog({ show: false, id: null });
+      if (error) throw error;
 
-    if (!error) {
-      // Notify Patient
-      if (appt) {
-        await supabase.from('notificaciones').insert({
-          user_id: appt.patient_id,
-          titulo: 'Solicitud de Cita Rechazada',
-          mensaje: `Lo sentimos, su solicitud de cita para el ${appt.appointment_date} ha sido rechazada por el profesional.`,
-          tipo: 'cita'
-        });
-      }
+      setRejectDialog({ show: false, id: null });
+      toast.success('Solicitud rechazada correctamente');
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session) fetchPendingRequests(session.user.id);
-    } else alert('Error: ' + error.message);
+
+    } catch (err: any) {
+      alert('Error: ' + (err.message || 'Error al rechazar'));
+    }
   };
 
   const initApprove = (appt: any) => {
@@ -202,28 +203,28 @@ export default function ClinicalDashboard() {
   };
 
   const performApprove = async (id: string, link?: string) => {
-    const updateData: any = { status: 'confirmed' };
-    if (link) updateData.meet_link = link;
+    try {
+      const { error } = await supabase.functions.invoke('manage-appointment', {
+        body: {
+          action: 'approve',
+          appointment_id: id,
+          meet_link: link,
+          doctor_name: doctorName
+        }
+      });
 
-    const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
-    if (!error) {
-      // Notify Patient
-      const appt = pendingAppointments.find(a => a.id === id);
-      if (appt) {
-        await supabase.from('notificaciones').insert({
-          user_id: appt.patient_id,
-          titulo: 'Cita Confirmada',
-          mensaje: `Tu cita para el ${appt.appointment_date} a las ${appt.appointment_time} ha sido confirmada por el ${doctorName}.`,
-          tipo: 'cita'
-        });
-      }
+      if (error) throw new Error(error.message);
+
+      toast.success('Cita aprobada y notificada');
 
       setShowLinkModal(false);
       setApprovingAppt(null);
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) fetchPendingRequests(session.user.id);
-    } else {
-      alert('Error al aprobar: ' + error.message);
+
+    } catch (err: any) {
+      alert('Error al aprobar cita: ' + err.message);
     }
   };
 
@@ -577,19 +578,21 @@ function NextPatientCard({ appointment, onRefresh }: { appointment: any | null, 
     if (!appointment) return;
     if (!confirm('¿Marcar como "No Asistió"? Esto liberará el cupo.')) return;
 
-    const { error } = await supabase.from('appointments').update({ status: 'no-show' }).eq('id', appointment.id);
-    if (!error) {
-      // Notify Patient
-      await supabase.from('notificaciones').insert({
-        user_id: appointment.patient_id,
-        titulo: 'Inasistencia Registrada',
-        mensaje: `Se ha registrado que no asististe a tu cita del ${appointment.appointment_date}. Si crees que es un error, contacta a soporte.`,
-        tipo: 'cita'
+    try {
+      const { error } = await supabase.functions.invoke('manage-appointment', {
+        body: {
+          action: 'noshow',
+          appointment_id: appointment.id
+        }
       });
 
+      if (error) throw error;
+
+      toast.success('Inasistencia registrada');
       if (onRefresh) onRefresh();
-    } else {
-      alert('Error: ' + error.message);
+
+    } catch (err: any) {
+      alert('Error: ' + (err.message || 'Error al actualizar'));
     }
   };
 

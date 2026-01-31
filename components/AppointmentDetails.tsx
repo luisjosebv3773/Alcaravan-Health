@@ -67,6 +67,7 @@ export default function AppointmentDetails() {
     fetchAppointmentDetails();
   }, [id]);
 
+
   const fetchAppointmentDetails = async () => {
     try {
       setLoading(true);
@@ -81,14 +82,26 @@ export default function AppointmentDetails() {
             )
           ),
           consultation:consultations (
+            id,
             reason,
             current_illness,
             vital_signs,
+            bp_systolic,
+            bp_diastolic,
+            heart_rate,
+            temp_c,
+            oxygen_sat,
             diagnosis,
             diagnosis_type,
             prescription,
             medical_rest,
-            exams_requested
+            exams_requested,
+            prescriptions_data:prescriptions (
+              medication_name,
+              dosage,
+              frequency,
+              duration
+            )
           )
         `)
         .eq('id', id)
@@ -96,17 +109,43 @@ export default function AppointmentDetails() {
 
       if (error) throw error;
 
-      // Handle array response for doctor relation
+      // Unificar datos (Nuevo esquema > Viejo esquema)
+      const consultation = Array.isArray(data.consultation) ? data.consultation[0] : data.consultation;
+
+      if (consultation) {
+        // Normalizar Signos Vitales para la vista
+        consultation.vital_signs = {
+          ta: (consultation.bp_systolic && consultation.bp_diastolic)
+            ? `${consultation.bp_systolic}/${consultation.bp_diastolic}`
+            : (consultation.vital_signs?.ta || ''),
+          fc: consultation.heart_rate || consultation.vital_signs?.fc || '',
+          temp: consultation.temp_c || consultation.vital_signs?.temp || '',
+          spo2: consultation.oxygen_sat || consultation.vital_signs?.spo2 || ''
+        };
+
+        // Normalizar Recetas (Priorizar tabla prescriptions_data)
+        if (consultation.prescriptions_data && consultation.prescriptions_data.length > 0) {
+          consultation.prescription = {
+            items: consultation.prescriptions_data.map((rx: any) => ({
+              name: rx.medication_name,
+              dose: rx.dosage,
+              frequency: rx.frequency,
+              duration: rx.duration
+            })),
+            visible: true
+          };
+        }
+      }
+
       const safeData = {
         ...data,
         doctor: Array.isArray(data.doctor) ? data.doctor[0] : data.doctor,
-        consultation: Array.isArray(data.consultation) ? data.consultation[0] : data.consultation
+        consultation: consultation
       };
 
       setAppointment(safeData);
     } catch (error) {
       console.error('Error fetching appointment details:', error);
-      // Optional: Redirect or show error message
     } finally {
       setLoading(false);
     }

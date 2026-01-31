@@ -28,6 +28,7 @@ const PatientDirectory = React.lazy(() => import('./components/PatientDirectory'
 const ProfessionalAppointmentHistory = React.lazy(() => import('./components/ProfessionalAppointmentHistory'));
 const AdminDashboard = React.lazy(() => import('./components/AdminDashboard'));
 const AdminUserManagement = React.lazy(() => import('./components/AdminUserManagement'));
+const AdminUserDetail = React.lazy(() => import('./components/AdminUserDetail'));
 const PendingVerification = React.lazy(() => import('./components/PendingVerification'));
 const Consultation = React.lazy(() => import('./components/Consultation'));
 const UserProfile = React.lazy(() => import('./components/UserProfile'));
@@ -322,6 +323,7 @@ function AppContent() {
 
               <Route path="/admin" element={role === UserRole.ADMIN ? <AdminDashboard /> : <Navigate to="/login" />} />
               <Route path="/admin/users" element={role === UserRole.ADMIN ? <AdminUserManagement /> : <Navigate to="/login" />} />
+              <Route path="/admin/user/:id" element={role === UserRole.ADMIN ? <AdminUserDetail /> : <Navigate to="/login" />} />
 
               <Route path="/clinical" element={role === UserRole.DOCTOR ? <ClinicalDashboard /> : <Navigate to="/login" />} />
               <Route path="/book-appointment" element={role === UserRole.DOCTOR ? <BookAppointment /> : <Navigate to="/login" />} />
